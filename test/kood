@@ -34,21 +34,16 @@ const int ledPin1 = 32;
 
 #define dirPin 12
 #define stepPin 14
-#define dirPin2 15
-#define stepPin2 2
 #define motorInterfaceType 1
 int kiirus;
-int kiirus2;
 int kiirendus = 600;
 
 AccelStepper stepper = AccelStepper(motorInterfaceType, stepPin, dirPin);
-AccelStepper stepper2 = AccelStepper(motorInterfaceType, stepPin2, dirPin2);
 
 String message = "";
 String sliderValue1 = "0";
 String sliderValue2 = "0";
 String sliderValue3 = "0";
-String sliderValue4 = "0";
 
 int dutyCycle1;
 int positsioon;
@@ -70,7 +65,6 @@ String getSliderValues(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(sliderValue2);
   sliderValues["sliderValue3"] = String(sliderValue3);
-  sliderValues["sliderValue4"] = String(sliderValue4);
 
   String jsonString = JSON.stringify(sliderValues);
   return jsonString;
@@ -126,13 +120,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       kiirus = map(sliderValue3.toInt(), 0, 100, 0, 4000);
       //Serial.println(dutyCycle3);
       Serial.println(kiirus);
-      notifyClients(getSliderValues());
-    }
-    if (message.indexOf("4s") >= 0) {
-      sliderValue3 = message.substring(2);
-      kiirus2 = map(sliderValue4.toInt(), 0, 100, 0, 4000);
-      //Serial.println(dutyCycle3);
-      
       notifyClients(getSliderValues());
     }
     if (strcmp((char*)data, "getValues") == 0) {
@@ -201,7 +188,6 @@ void setup() {
   //  stepper.setAcceleration(3200);
   //  stepper.move(-800);
   //  stepper.runToPosition();
-  stepper2.setCurrentPosition(0);
 }
 
 void loop() {
@@ -210,10 +196,9 @@ void loop() {
   //ledcWrite(ledChannel3, dutyCycle3);
 
     
-    stepper.setAcceleration(400);
+    stepper.setAcceleration(800);
     stepper.move(positsioon);
-    //Serial.println(positsioon);
-    stepper2.setAcceleration(100);
+    Serial.println(positsioon);
     //stepper.run();
 
       if (stepper.distanceToGo() != 0) {
@@ -221,9 +206,6 @@ void loop() {
                  stepper.runSpeed();
          Serial.println(stepper.distanceToGo());
          }
-    stepper2.setMaxSpeed(kiirus2);
-    stepper2.move(1000);
-    stepper2.runSpeed();
 
     
 

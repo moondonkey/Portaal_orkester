@@ -3,37 +3,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ESP IOT DASHBOARD</title>
+    <title>PORTAAL TEST</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
     <div class="topnav">
-        <h1>Multiple Sliders</h1>
+        <h1>Kontroll</h1>
     </div>
     <div class="content">
         <div class="card-grid">
             <div class="card">
-                <p class="card-title">Fader 1</p>
+                <p class="card-title">Valgus</p>
                 <p class="switch">
                     <input type="range" onchange="updateSliderPWM(this)" id="slider1" min="0" max="100" step="1" value ="0" class="slider">
                 </p>
-                <p class="state">Brightness: <span id="sliderValue1"></span> &percnt;</p>
+                <p class="state">Heledus: <span id="sliderValue1"></span> &percnt;</p>
             </div>
             <div class="card">
-                <p class="card-title"> Fader 2</p>
+                <p class="card-title">1. mootor</p>
                 <p class="switch">
                     <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="-10000" max="10000" step="1" value ="0" class="slider">
                 </p>
-                <p class="state">Kaugus: <span id="sliderValue2"></span> &percnt;</p>
+                <p class="state">Kaugus: <span id="sliderValue2"></span> </p>
             </div>
             <div class="card">
-                <p class="card-title"> Fader 3</p>
+                <p class="card-title"> 1. mootor</p>
                 <p class="switch">
                     <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="4000" step="1" value ="0" class="slider">
                 </p>
-                <p class="state">Kiirus: <span id="sliderValue3"></span> &percnt;</p>
+                <p class="state">Kiirus: <span id="sliderValue3"></span> </p>
+            </div>
+            <div class="card">
+                <p class="card-title"> 2. mootor</p>
+                <p class="switch">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider4" min="0" max="1000" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">Kiirus: <span id="sliderValue3"></span> </p>
             </div>
         </div>
     </div>
