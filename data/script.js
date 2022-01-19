@@ -19,6 +19,10 @@ function initWebSocket() {
     websocket.onclose = onClose;
     websocket.onmessage = onMessage;
 }
+function initButton() {
+    document.getElementById('button').addEventListener('click', toggle);
+  }
+
 
 function onOpen(event) {
     console.log('Connection opened');
@@ -37,6 +41,10 @@ function updateSliderPWM(element) {
     console.log(sliderValue);
     websocket.send(sliderNumber+"s"+sliderValue.toString());
 }
+function toggle(){
+    console.log('button');
+    //websocket.send('7s1');
+  }
 
 function onMessage(event) {
     console.log(event.data);

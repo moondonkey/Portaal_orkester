@@ -24,30 +24,43 @@
             <div class="card">
                 <p class="card-title"> Suund 1</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="1" max="3" step="1" value ="2" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="1" max="5" step="1" value ="2" class="slider">
                 </p>
                 <p class="state">Suund: <span id="sliderValue2"></span></p>
             </div>
             <div class="card">
                 <p class="card-title"> Kiirus 1</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="100" step="1" value ="0" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="8000" step="1" value ="0" class="slider">
                 </p>
-                <p class="state">Brightness: <span id="sliderValue3"></span> &percnt;</p>
+                <p class="state">Brightness: <span id="sliderValue3"></span></p>
             </div>
             <div class="card">
-                <p class="card-title"> Suund 2</p>
+                <p class="card-title"> Positsioon 2</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider4" min="1" max="3" step="1" value ="2" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider4" min="1" max="6000" step="1" value ="6000" class="slider">
                 </p>
                 <p class="state">Suund: <span id="sliderValue4"></span></p>
             </div>
             <div class="card">
                 <p class="card-title"> Kiirus 2</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider5" min="0" max="100" step="1" value ="0" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider5" min="0" max="8000" step="1" value ="0" class="slider">
                 </p>
-                <p class="state">Brightness: <span id="sliderValue5"></span> &percnt;</p>
+                <p class="state">Brightness: <span id="sliderValue5"></span></p>
+            </div>
+            <div class="card">
+                <p class="card-title"> Fookus</p>
+                <p class="switch">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider6" min="1" max="180" step="1" value ="1" class="slider">
+                </p>
+                <p class="state">Fookus: <span id="sliderValue6"></span> &percnt;</p>
+            </div>
+            <div class="card">
+                <p class="switch">
+                    <button id="button" onclick="toggle" class="button">Toggle</button>
+                </p>
+                
             </div>
         </div>
     </div>
