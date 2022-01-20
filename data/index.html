@@ -57,10 +57,18 @@
                 <p class="state">Fookus: <span id="sliderValue6"></span> &percnt;</p>
             </div>
             <div class="card">
+                <p class="card-title"> Suund 3</p>
                 <p class="switch">
-                    <button id="button" onclick="toggle" class="button">Toggle</button>
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider7" min="1" max="4" step="1" value ="2" class="slider">
                 </p>
-                
+                <p class="state">Suund: <span id="sliderValue7"></span></p>
+            </div>
+            <div class="card">
+                <p class="card-title"> Kiirus 3</p>
+                <p class="switch">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider8" min="0" max="8000" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">Fookus: <span id="sliderValue8"></span></p>
             </div>
         </div>
     </div>
