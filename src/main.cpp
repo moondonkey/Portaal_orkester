@@ -29,18 +29,11 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
-// Set LED GPIO
-
-
 Servo myservo;
 int minUs = 1000;
 int maxUs = 2000;
 ESP32PWM pwm;
 
-// #define dirPin 22
-// #define stepPin 23
-// #define dirPin2 19
-// #define stepPin2 18
 #define dirPin 17
 #define stepPin 16
 #define dirPin2 19
@@ -52,6 +45,13 @@ ESP32PWM pwm;
 #define hallSensor2 34
 #define limit2 25
 const int ledPin1 = 32;
+
+int homingSpeed1 = 80;
+int homingSpeed2 = 240;
+int homingSpeed3 = 40;
+int startPos1 = 0;
+int startPos2 = 6010;
+int startPos3 = 0;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
@@ -80,7 +80,6 @@ int kiirus3 = 0;
 int laeng = 0;
 int homed = false;
 
-
 // setting PWM properties
 const int freq = 5000;
 const int ledChannel1 = 0;
@@ -102,67 +101,89 @@ String getSliderValues(){
   return jsonString;
 }
 
-void magnet(){
-  pinMode(hallSensor, INPUT);
-  laeng = digitalRead(hallSensor);
-  Serial.println(laeng);
-  
-  }
-
-void homing(){
+void homing1(){
   Serial.println("homing");
- 
-  // Move motor until home position reached;
-  
-  
   while(analogRead(hallSensor) >= 1050) {
     Serial.println(analogRead(hallSensor));
-    stepper->setSpeedInHz(80);
+    stepper->setSpeedInHz(homingSpeed1);
+    stepper->runForward();
+  }
+  stepper->setSpeedInHz(homingSpeed1 * 2);
+  stepper->move(homingSpeed1 * -4);
+  delay(1000);
+  while(analogRead(hallSensor) >= 1050) {
+    Serial.println(analogRead(hallSensor));
+    stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
   }
     stepper->stopMove();
     delay(200);
-    stepper->setCurrentPosition(0);
+    stepper->setCurrentPosition(startPos1);
     Serial.print("homed ");
     Serial.println(stepper->getCurrentPosition());
     kiirus = 0;
     stepper->setSpeedInHz(0);
 }
 
-void homing2(){
-   
+void homing2(){ 
    Serial.println("homing2");
-
     while(digitalRead(limit2)){
-      stepper2->setSpeedInHz(240);
+      stepper2->setSpeedInHz(homingSpeed2);
       stepper2->runForward();
     }
+  stepper2->setSpeedInHz(homingSpeed2 * 2);
+  stepper2->move(homingSpeed2 * -4);
+  delay(1000);
+  while(digitalRead(limit2)) {
+    Serial.println(limit2);
+    stepper2->setSpeedInHz(homingSpeed2 /2);
+    stepper2->runForward();
+  }
     stepper2->stopMove();
     delay(200);
-    stepper2->setCurrentPosition(6010);
+    stepper2->setCurrentPosition(startPos2);
     Serial.print("homed2 ");
     Serial.println(stepper2->getCurrentPosition());
     kiirus2 = 0;
     stepper2->setSpeedInHz(0);
-
 }
 
 void homing3(){
    Serial.println("homing3");
     Serial.println(analogRead(hallSensor2));
     while(analogRead(hallSensor2) <= 2525){
-      stepper3->setSpeedInHz(40);
+      stepper3->setSpeedInHz(homingSpeed3);
       stepper3->runForward();
     }
+    stepper3->setSpeedInHz(homingSpeed3 * 2);
+  stepper3->move(homingSpeed3 * -4);
+  delay(1000);
+  while(analogRead(hallSensor2) <= 2525) {
+    Serial.println(analogRead(hallSensor2));
+    stepper3->setSpeedInHz(homingSpeed3/2);
+    stepper3->runForward();
+  }
     stepper3->stopMove();
     delay(200);
-    stepper3->setCurrentPosition(0);
+    stepper3->setCurrentPosition(startPos3);
     Serial.print("homed3 ");
     Serial.println(stepper3->getCurrentPosition());
     kiirus3 = 0;
     stepper3->setSpeedInHz(0);
-
 }
+// void homing(int telg, int sensor, bool sensor_suund, bool sensor_tyyp, int nullpunkt){
+//   if 
+//    while(analogRead(sensor)){
+//      telg->setSpeedInHz(40);
+//      telg->runForward();
+//    }
+//    telg->stopMove();
+//     delay(200);
+//    telg->setCurrentPosition(nullpunkt);
+//    Serial.print("homed");
+//    Serial.println(telg->getCurrentPosition());
+   
+// }
 // Initialize SPIFFS
 void initFS() {
   if (!SPIFFS.begin()) {
@@ -286,11 +307,8 @@ void setup() {
   pinMode(hallSensor, INPUT);
   pinMode(hallSensor2, INPUT);
 
-
-
   initFS();
   initWiFi();
-  
 
   //Servo
   ESP32PWM::allocateTimer(0);
@@ -319,8 +337,6 @@ void setup() {
   server.begin();
 
   engine.init();
-  
-
    stepper = engine.stepperConnectToPin(stepPin);
    stepper2 = engine.stepperConnectToPin(stepPin2);
    stepper3 = engine.stepperConnectToPin(stepPin3);
@@ -329,27 +345,27 @@ void setup() {
    {
       stepper->setDirectionPin(dirPin);
       stepper->setAutoEnable(false);
-      stepper->setSpeedInHz(kiirus);       // 500 steps/s
-      stepper->setAcceleration(1500);    // 100 steps/s²
+      stepper->setSpeedInHz(kiirus);
+      stepper->setAcceleration(1500); 
       
    }
      if (stepper2) 
    {
       stepper2->setDirectionPin(dirPin2);
       stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2);       // 500 steps/s
-      stepper2->setAcceleration(2000);    // 100 steps/s²
+      stepper2->setSpeedInHz(kiirus2); 
+      stepper2->setAcceleration(2000); 
       
    } 
    if (stepper3) 
    {
       stepper3->setDirectionPin(dirPin3);
       stepper3->setAutoEnable(false);
-      stepper3->setSpeedInHz(kiirus3);       // 500 steps/s
-      stepper3->setAcceleration(2000);    // 100 steps/s²
+      stepper3->setSpeedInHz(kiirus3); 
+      stepper3->setAcceleration(2000); 
       
    }
-  homing();
+  homing1();
   homing2();
   homing3();
 }
@@ -360,12 +376,10 @@ void loop() {
 
       if (positsioon == 3){
         stepper->setSpeedInHz(kiirus);
-        stepper->runForward();  
-        //stepper3 ->runForward();  
+        stepper->runForward(); 
       }
       else if (positsioon == 2){
         stepper->stopMove();
-        //stepper3 ->stopMove();
       }
       else if (positsioon == 1){
         stepper->setSpeedInHz(kiirus);
@@ -373,7 +387,7 @@ void loop() {
 
       }
       else if (positsioon == 4){
-        homing();
+        homing1();
 
       }
             else if (positsioon == 5){
@@ -389,20 +403,16 @@ void loop() {
    {
       
       stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2);       // 500 steps/s
-      
+      stepper2->setSpeedInHz(kiirus2);
       stepper2->moveTo(positsioon2);
    }
 
-
        if (positsioon3 == 3){
         stepper3->setSpeedInHz(kiirus3 * 1.5);
-        stepper3->runForward();  
-          
+        stepper3->runForward();          
       }
       else if (positsioon3 == 2){
-        stepper3->stopMove();
-       
+        stepper3->stopMove();     
       }
       else if (positsioon3 == 1){
         stepper3->setSpeedInHz(kiirus3 * 1.5);
@@ -424,7 +434,5 @@ void loop() {
   // Serial.print(" pos 2 on ");
   // Serial.println(stepper3->getCurrentPosition());
 
-  Serial.println(analogRead(hallSensor2));
-  //magnet();
   ws.cleanupClients();
 }
