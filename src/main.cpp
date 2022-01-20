@@ -30,7 +30,7 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 // Set LED GPIO
-const int ledPin1 = 32;
+
 
 Servo myservo;
 int minUs = 1000;
@@ -49,7 +49,9 @@ ESP32PWM pwm;
 #define stepPin3 23
 #define servoPin 9
 #define hallSensor 33
+#define hallSensor2 34
 #define limit2 25
+const int ledPin1 = 32;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
@@ -63,14 +65,18 @@ String sliderValue3 = "0";
 String sliderValue4 = "6000";
 String sliderValue5 = "0";
 String sliderValue6 = "0";
-String sliderValue7 = "0";
+String sliderValue7 = "2";
+String sliderValue8 = "0";
+String sliderValue9 = "0";
 
 int dutyCycle1;
 int positsioon = 2;
-int positsioon2 = 2;
+int positsioon2 = 6000;
+int positsioon3 = 2;
 int fookus = 0;
 int kiirus = 0;
 int kiirus2 = 0;
+int kiirus3 = 0;
 int laeng = 0;
 int homed = false;
 
@@ -110,6 +116,7 @@ void homing(){
   
   
   while(analogRead(hallSensor) >= 1050) {
+    Serial.println(analogRead(hallSensor));
     stepper->setSpeedInHz(80);
     stepper->runForward();
   }
@@ -118,15 +125,16 @@ void homing(){
     stepper->setCurrentPosition(0);
     Serial.print("homed ");
     Serial.println(stepper->getCurrentPosition());
+    kiirus = 0;
     stepper->setSpeedInHz(0);
 }
 
 void homing2(){
-   pinMode(limit2, INPUT_PULLUP);
+   
    Serial.println("homing2");
 
     while(digitalRead(limit2)){
-      stepper2->setSpeedInHz(160);
+      stepper2->setSpeedInHz(240);
       stepper2->runForward();
     }
     stepper2->stopMove();
@@ -134,7 +142,25 @@ void homing2(){
     stepper2->setCurrentPosition(6010);
     Serial.print("homed2 ");
     Serial.println(stepper2->getCurrentPosition());
+    kiirus2 = 0;
     stepper2->setSpeedInHz(0);
+
+}
+
+void homing3(){
+   Serial.println("homing3");
+    Serial.println(analogRead(hallSensor2));
+    while(analogRead(hallSensor2) <= 2525){
+      stepper3->setSpeedInHz(40);
+      stepper3->runForward();
+    }
+    stepper3->stopMove();
+    delay(200);
+    stepper3->setCurrentPosition(0);
+    Serial.print("homed3 ");
+    Serial.println(stepper3->getCurrentPosition());
+    kiirus3 = 0;
+    stepper3->setSpeedInHz(0);
 
 }
 // Initialize SPIFFS
@@ -174,15 +200,11 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       sliderValue1 = message.substring(2);
       dutyCycle1 = map(sliderValue1.toInt(), 0, 100, 0, 255);
       Serial.print("lamp");
-      // Serial.println(dutyCycle1);
-      // Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
     if (message.indexOf("2s") >= 0) {
       sliderValue2 = message.substring(2);
       positsioon = map(sliderValue2.toInt(), 1, 5, 1, 5);
-      // Serial.print("Suund");
-      // Serial.println(positsioon);
       Serial.print(getSliderValues());
       
       notifyClients(getSliderValues());
@@ -190,49 +212,46 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     if (message.indexOf("3s") >= 0) {
       sliderValue3 = message.substring(2);
       kiirus = map(sliderValue3.toInt(), 0, 8000, 0, 16000);
-      // Serial.print("kiirus1");
-      // Serial.println(kiirus);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
      if (message.indexOf("4s") >= 0) {
       sliderValue4 = message.substring(2);
       positsioon2 = map(sliderValue4.toInt(),1, 6000, 1, 6000);
-      // Serial.print("kiirus1");
-      // Serial.println(kiirus);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
     if (message.indexOf("5s") >= 0) {
       sliderValue5 = message.substring(2);
       kiirus2 = map(sliderValue5.toInt(), 0, 8000, 0, 8000);
-      // Serial.print("kiirus1");
-      // Serial.println(kiirus);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
      if (message.indexOf("6s") >= 0) {
       sliderValue6 = message.substring(2);
       fookus = map(sliderValue6.toInt(), 1, 180, 0, 180);
-      // Serial.print("kiirus1");
-      // Serial.println(kiirus);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
     if (message.indexOf("7s") >= 0) {
       sliderValue7 = message.substring(2);
-      Serial.println(sliderValue7);
-      if (sliderValue7.toInt() == 1){
-        Serial.println("nupp");
-      homing();
+      positsioon3 = map(sliderValue7.toInt(), 1, 4, 1, 4);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
       }
-      
-    }
+    if (message.indexOf("8s") >= 0) {
+      sliderValue8 = message.substring(2);
+      kiirus3 = map(sliderValue8.toInt(), 0, 8000, 0, 8000);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+      }  
+    
    
     if (strcmp((char*)data, "getValues") == 0) {
       notifyClients(getSliderValues());
     }
-  }
+  
+}
 }
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
@@ -263,7 +282,11 @@ void setup() {
 
   Serial.begin(115200);
   pinMode(ledPin1, OUTPUT);
+  pinMode(limit2, INPUT_PULLUP);
   pinMode(hallSensor, INPUT);
+  pinMode(hallSensor2, INPUT);
+
+
 
   initFS();
   initWiFi();
@@ -307,7 +330,7 @@ void setup() {
       stepper->setDirectionPin(dirPin);
       stepper->setAutoEnable(false);
       stepper->setSpeedInHz(kiirus);       // 500 steps/s
-      stepper->setAcceleration(200);    // 100 steps/s²
+      stepper->setAcceleration(1500);    // 100 steps/s²
       
    }
      if (stepper2) 
@@ -322,26 +345,27 @@ void setup() {
    {
       stepper3->setDirectionPin(dirPin3);
       stepper3->setAutoEnable(false);
-      stepper3->setSpeedInHz(800);       // 500 steps/s
-      stepper3->setAcceleration(500);    // 100 steps/s²
+      stepper3->setSpeedInHz(kiirus3);       // 500 steps/s
+      stepper3->setAcceleration(2000);    // 100 steps/s²
       
    }
   homing();
   homing2();
+  homing3();
 }
 
 void loop() {
   ledcWrite(ledChannel1, dutyCycle1);
-  
+ 
 
       if (positsioon == 3){
         stepper->setSpeedInHz(kiirus);
         stepper->runForward();  
-        stepper3 ->runForward();  
+        //stepper3 ->runForward();  
       }
       else if (positsioon == 2){
         stepper->stopMove();
-        stepper3 ->stopMove();
+        //stepper3 ->stopMove();
       }
       else if (positsioon == 1){
         stepper->setSpeedInHz(kiirus);
@@ -355,7 +379,7 @@ void loop() {
             else if (positsioon == 5){
         stepper->setSpeedInHz(kiirus);
         int long asukoht = stepper->getCurrentPosition();
-        stepper->moveTo(asukoht / 800);
+        stepper->moveTo(asukoht / 1600);
 
       }
       else{
@@ -369,7 +393,38 @@ void loop() {
       
       stepper2->moveTo(positsioon2);
    }
- 
+
+
+       if (positsioon3 == 3){
+        stepper3->setSpeedInHz(kiirus3 * 1.5);
+        stepper3->runForward();  
+          
+      }
+      else if (positsioon3 == 2){
+        stepper3->stopMove();
+       
+      }
+      else if (positsioon3 == 1){
+        stepper3->setSpeedInHz(kiirus3 * 1.5);
+        stepper3->runBackward();
+      }
+       else if (positsioon3 == 4){
+        int long asukoht2 = stepper3->getCurrentPosition();
+        stepper3->moveTo(asukoht2 / 1600);
+      }
+
+  // Serial.print("kiirus 1 on ");
+  // Serial.print(stepper->getCurrentSpeedInMilliHz() / 1000);
+  // Serial.print(" kiirus 2 on ");
+  // Serial.print(stepper2->getCurrentSpeedInMilliHz() / 1000);
+  // Serial.print(" kiirus 3 on ");
+  // Serial.print(stepper3->getCurrentSpeedInMilliHz() / 1000);
+  // Serial.print(" pos 1 on ");
+  // Serial.print(stepper->getCurrentPosition());
+  // Serial.print(" pos 2 on ");
+  // Serial.println(stepper3->getCurrentPosition());
+
+  Serial.println(analogRead(hallSensor2));
   //magnet();
   ws.cleanupClients();
 }
