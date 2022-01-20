@@ -43,8 +43,10 @@ ESP32PWM pwm;
 // #define stepPin2 18
 #define dirPin 17
 #define stepPin 16
-#define dirPin2 23
-#define stepPin2 22
+#define dirPin2 19
+#define stepPin2 18
+#define dirPin3 22
+#define stepPin3 23
 #define servoPin 9
 #define hallSensor 33
 #define limit2 25
@@ -52,6 +54,7 @@ ESP32PWM pwm;
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
 FastAccelStepper *stepper2 = NULL;
+FastAccelStepper *stepper3 = NULL;
 
 String message = "";
 String sliderValue1 = "0";
@@ -107,7 +110,7 @@ void homing(){
   
   
   while(analogRead(hallSensor) >= 1050) {
-    stepper->setSpeedInHz(40);
+    stepper->setSpeedInHz(80);
     stepper->runForward();
   }
     stepper->stopMove();
@@ -123,7 +126,7 @@ void homing2(){
    Serial.println("homing2");
 
     while(digitalRead(limit2)){
-      stepper2->setSpeedInHz(80);
+      stepper2->setSpeedInHz(160);
       stepper2->runForward();
     }
     stepper2->stopMove();
@@ -186,7 +189,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }    
     if (message.indexOf("3s") >= 0) {
       sliderValue3 = message.substring(2);
-      kiirus = map(sliderValue3.toInt(), 0, 8000, 0, 8000);
+      kiirus = map(sliderValue3.toInt(), 0, 8000, 0, 16000);
       // Serial.print("kiirus1");
       // Serial.println(kiirus);
       Serial.print(getSliderValues());
@@ -297,6 +300,7 @@ void setup() {
 
    stepper = engine.stepperConnectToPin(stepPin);
    stepper2 = engine.stepperConnectToPin(stepPin2);
+   stepper3 = engine.stepperConnectToPin(stepPin3);
 
   if (stepper) 
    {
@@ -313,6 +317,14 @@ void setup() {
       stepper2->setSpeedInHz(kiirus2);       // 500 steps/s
       stepper2->setAcceleration(2000);    // 100 steps/s²
       
+   } 
+   if (stepper3) 
+   {
+      stepper3->setDirectionPin(dirPin3);
+      stepper3->setAutoEnable(false);
+      stepper3->setSpeedInHz(800);       // 500 steps/s
+      stepper3->setAcceleration(500);    // 100 steps/s²
+      
    }
   homing();
   homing2();
@@ -324,10 +336,12 @@ void loop() {
 
       if (positsioon == 3){
         stepper->setSpeedInHz(kiirus);
-        stepper->runForward();   
+        stepper->runForward();  
+        stepper3 ->runForward();  
       }
       else if (positsioon == 2){
         stepper->stopMove();
+        stepper3 ->stopMove();
       }
       else if (positsioon == 1){
         stepper->setSpeedInHz(kiirus);
