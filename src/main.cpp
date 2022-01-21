@@ -29,10 +29,10 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
-Servo myservo;
-int minUs = 1000;
-int maxUs = 2000;
-ESP32PWM pwm;
+// Servo myservo;
+// int minUs = 500;
+// int maxUs = 2400;
+// ESP32PWM pwm;
 
 #define dirPin 17
 #define stepPin 16
@@ -40,15 +40,15 @@ ESP32PWM pwm;
 #define stepPin2 18
 #define dirPin3 22
 #define stepPin3 23
-#define servoPin 9
+#define servoPin 26
 #define hallSensor 33
 #define hallSensor2 34
-#define limit2 25
+#define limit2 35
 const int ledPin1 = 32;
 
 int homingSpeed1 = 80;
 int homingSpeed2 = 240;
-int homingSpeed3 = 40;
+int homingSpeed3 = 80;
 int startPos1 = 0;
 int startPos2 = 6010;
 int startPos3 = 0;
@@ -64,7 +64,7 @@ String sliderValue2 = "2";
 String sliderValue3 = "0";
 String sliderValue4 = "6000";
 String sliderValue5 = "0";
-String sliderValue6 = "0";
+String sliderValue6 = "1";
 String sliderValue7 = "2";
 String sliderValue8 = "0";
 String sliderValue9 = "0";
@@ -73,7 +73,7 @@ int dutyCycle1;
 int positsioon = 2;
 int positsioon2 = 6000;
 int positsioon3 = 2;
-int fookus = 0;
+int fookus = 8;
 int kiirus = 0;
 int kiirus2 = 0;
 int kiirus3 = 0;
@@ -84,6 +84,11 @@ int homed = false;
 const int freq = 5000;
 const int ledChannel1 = 0;
 const int resolution = 8;
+
+const int PWMFreq2 = 50;
+const int PWMChannel2 = 2;
+const int PWMResolution2 = 8;
+int dutyCycle = 0;
 
 //Json Variable to Hold Slider Values
 JSONVar sliderValues;
@@ -108,8 +113,8 @@ void homing1(){
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
-  stepper->setSpeedInHz(homingSpeed1 * 2);
-  stepper->move(homingSpeed1 * -4);
+  stepper->setSpeedInHz(homingSpeed1 * 4);
+  stepper->move(homingSpeed1 * -2);
   delay(1000);
   while(analogRead(hallSensor) >= 1050) {
     Serial.println(analogRead(hallSensor));
@@ -127,18 +132,25 @@ void homing1(){
 
 void homing2(){ 
    Serial.println("homing2");
-    while(digitalRead(limit2)){
+    while(analogRead(limit2) <= 2500 ){
+      // debugging
+      ledcWrite(ledChannel1, 60);
+
+      Serial.println(analogRead(limit2));
       stepper2->setSpeedInHz(homingSpeed2);
       stepper2->runForward();
     }
+  ledcWrite(ledChannel1, 0);  
   stepper2->setSpeedInHz(homingSpeed2 * 2);
   stepper2->move(homingSpeed2 * -4);
   delay(1000);
-  while(digitalRead(limit2)) {
-    Serial.println(limit2);
+  while(analogRead(limit2) <= 2500) {
+    ledcWrite(ledChannel1, 60);
+    Serial.println(analogRead(limit2));
     stepper2->setSpeedInHz(homingSpeed2 /2);
     stepper2->runForward();
   }
+    ledcWrite(ledChannel1, 0);
     stepper2->stopMove();
     delay(200);
     stepper2->setCurrentPosition(startPos2);
@@ -155,8 +167,8 @@ void homing3(){
       stepper3->setSpeedInHz(homingSpeed3);
       stepper3->runForward();
     }
-    stepper3->setSpeedInHz(homingSpeed3 * 2);
-  stepper3->move(homingSpeed3 * -4);
+    stepper3->setSpeedInHz(homingSpeed3 * 4);
+  stepper3->move(homingSpeed3 * -1);
   delay(1000);
   while(analogRead(hallSensor2) <= 2525) {
     Serial.println(analogRead(hallSensor2));
@@ -171,19 +183,7 @@ void homing3(){
     kiirus3 = 0;
     stepper3->setSpeedInHz(0);
 }
-// void homing(int telg, int sensor, bool sensor_suund, bool sensor_tyyp, int nullpunkt){
-//   if 
-//    while(analogRead(sensor)){
-//      telg->setSpeedInHz(40);
-//      telg->runForward();
-//    }
-//    telg->stopMove();
-//     delay(200);
-//    telg->setCurrentPosition(nullpunkt);
-//    Serial.print("homed");
-//    Serial.println(telg->getCurrentPosition());
-   
-// }
+
 // Initialize SPIFFS
 void initFS() {
   if (!SPIFFS.begin()) {
@@ -250,7 +250,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
      if (message.indexOf("6s") >= 0) {
       sliderValue6 = message.substring(2);
-      fookus = map(sliderValue6.toInt(), 1, 180, 0, 180);
+      fookus = map(sliderValue6.toInt(), 1, 180, 8, 16);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -311,18 +311,24 @@ void setup() {
   initWiFi();
 
   //Servo
-  ESP32PWM::allocateTimer(0);
-	ESP32PWM::allocateTimer(1);
-	ESP32PWM::allocateTimer(2);
-	ESP32PWM::allocateTimer(3);
-  myservo.setPeriodHertz(50);
-  myservo.attach(servoPin, minUs, maxUs);
+  // ESP32PWM::allocateTimer(0);
+	// ESP32PWM::allocateTimer(1);
+	// ESP32PWM::allocateTimer(2);
+	// ESP32PWM::allocateTimer(3);
+  // myservo.setPeriodHertz(50);
+  // myservo.attach(servoPin, minUs, maxUs);
   
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
 
   // attach the channel to the GPIO to be controlled
   ledcAttachPin(ledPin1, ledChannel1);
+
+  ledcSetup(PWMChannel2, PWMFreq2, PWMResolution2);
+  /* Attach the LED PWM Channel to the GPIO Pin */
+  ledcAttachPin(servoPin, PWMChannel2);
+  ledcWrite(PWMChannel2, 8);
+  
 
   initWebSocket();
   
@@ -433,6 +439,11 @@ void loop() {
   // Serial.print(stepper->getCurrentPosition());
   // Serial.print(" pos 2 on ");
   // Serial.println(stepper3->getCurrentPosition());
+      // myservo.write(fookus);
+  
+  
+  ledcWrite(PWMChannel2, fookus);
+  Serial.println(fookus);
 
   ws.cleanupClients();
 }
