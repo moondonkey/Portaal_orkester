@@ -8,7 +8,7 @@
   The above copyright notice and this permission notice shall be included in all
   copies or substantial portions of the Software.
 */
-
+#include <esp_now.h>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -29,17 +29,12 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
-// Servo myservo;
-// int minUs = 500;
-// int maxUs = 2400;
-// ESP32PWM pwm;
-
 #define dirPin 17
 #define stepPin 16
-#define dirPin2 19
-#define stepPin2 18
-#define dirPin3 22
-#define stepPin3 23
+#define dirPin2 22
+#define stepPin2 23
+#define dirPin3 19
+#define stepPin3 18
 #define servoPin 26
 #define hallSensor 33
 #define hallSensor2 34
@@ -50,7 +45,7 @@ int homingSpeed1 = 80;
 int homingSpeed2 = 240;
 int homingSpeed3 = 80;
 int startPos1 = 0;
-int startPos2 = 6010;
+int startPos2 = 6110;
 int startPos3 = 0;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
@@ -73,7 +68,7 @@ int dutyCycle1;
 int positsioon = 2;
 int positsioon2 = 6000;
 int positsioon3 = 2;
-int fookus = 8;
+int fookus = 9;
 int kiirus = 0;
 int kiirus2 = 0;
 int kiirus3 = 0;
@@ -89,6 +84,30 @@ const int PWMFreq2 = 50;
 const int PWMChannel2 = 2;
 const int PWMResolution2 = 8;
 int dutyCycle = 0;
+
+typedef struct test_struct{
+  byte commandByte;
+  byte noteByte;
+  byte velocityByte;
+  byte channel;
+} test_struct;
+
+test_struct myData;
+
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.print("cmd: ");
+  Serial.println(myData.commandByte);
+  Serial.print("vel: ");
+  Serial.println(myData.velocityByte);
+  Serial.print("channel: ");
+  Serial.println(myData.channel);
+  Serial.print("note: ");
+  Serial.println(myData.noteByte);
+  Serial.println();
+}
 
 //Json Variable to Hold Slider Values
 JSONVar sliderValues;
@@ -109,7 +128,7 @@ String getSliderValues(){
 void homing1(){
   Serial.println("homing");
   while(analogRead(hallSensor) >= 1050) {
-    Serial.println(analogRead(hallSensor));
+   // Serial.println(analogRead(hallSensor));
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
@@ -117,7 +136,7 @@ void homing1(){
   stepper->move(homingSpeed1 * -2);
   delay(1000);
   while(analogRead(hallSensor) >= 1050) {
-    Serial.println(analogRead(hallSensor));
+   // Serial.println(analogRead(hallSensor));
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
   }
@@ -136,7 +155,7 @@ void homing2(){
       // debugging
       ledcWrite(ledChannel1, 60);
 
-      Serial.println(analogRead(limit2));
+    //  Serial.println(analogRead(limit2));
       stepper2->setSpeedInHz(homingSpeed2);
       stepper2->runForward();
     }
@@ -146,7 +165,7 @@ void homing2(){
   delay(1000);
   while(analogRead(limit2) <= 2500) {
     ledcWrite(ledChannel1, 60);
-    Serial.println(analogRead(limit2));
+  //  Serial.println(analogRead(limit2));
     stepper2->setSpeedInHz(homingSpeed2 /2);
     stepper2->runForward();
   }
@@ -162,7 +181,7 @@ void homing2(){
 
 void homing3(){
    Serial.println("homing3");
-    Serial.println(analogRead(hallSensor2));
+  //  Serial.println(analogRead(hallSensor2));
     while(analogRead(hallSensor2) <= 2525){
       stepper3->setSpeedInHz(homingSpeed3);
       stepper3->runForward();
@@ -171,7 +190,7 @@ void homing3(){
   stepper3->move(homingSpeed3 * -1);
   delay(1000);
   while(analogRead(hallSensor2) <= 2525) {
-    Serial.println(analogRead(hallSensor2));
+   // Serial.println(analogRead(hallSensor2));
     stepper3->setSpeedInHz(homingSpeed3/2);
     stepper3->runForward();
   }
@@ -238,7 +257,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
      if (message.indexOf("4s") >= 0) {
       sliderValue4 = message.substring(2);
-      positsioon2 = map(sliderValue4.toInt(),1, 6000, 1, 6000);
+      positsioon2 = map(sliderValue4.toInt(),1, 6000, 1, startPos2-10);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -250,7 +269,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
      if (message.indexOf("6s") >= 0) {
       sliderValue6 = message.substring(2);
-      fookus = map(sliderValue6.toInt(), 1, 180, 8, 16);
+      fookus = map(sliderValue6.toInt(), 1, 180, 9, 16);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -262,7 +281,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       }
     if (message.indexOf("8s") >= 0) {
       sliderValue8 = message.substring(2);
-      kiirus3 = map(sliderValue8.toInt(), 0, 8000, 0, 8000);
+      kiirus3 = map(sliderValue8.toInt(), 0, 900, 0, 8000);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
       }  
@@ -310,14 +329,14 @@ void setup() {
   initFS();
   initWiFi();
 
-  //Servo
-  // ESP32PWM::allocateTimer(0);
-	// ESP32PWM::allocateTimer(1);
-	// ESP32PWM::allocateTimer(2);
-	// ESP32PWM::allocateTimer(3);
-  // myservo.setPeriodHertz(50);
-  // myservo.attach(servoPin, minUs, maxUs);
-  
+  //Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  esp_now_register_recv_cb(OnDataRecv);
+
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
 
@@ -340,7 +359,7 @@ void setup() {
   server.serveStatic("/", SPIFFS, "/");
 
   // Start server
-  server.begin();
+  //server.begin();
 
   engine.init();
    stepper = engine.stepperConnectToPin(stepPin);
@@ -360,7 +379,7 @@ void setup() {
       stepper2->setDirectionPin(dirPin2);
       stepper2->setAutoEnable(false);
       stepper2->setSpeedInHz(kiirus2); 
-      stepper2->setAcceleration(2000); 
+      stepper2->setAcceleration(800); 
       
    } 
    if (stepper3) 
@@ -443,7 +462,7 @@ void loop() {
   
   
   ledcWrite(PWMChannel2, fookus);
-  Serial.println(fookus);
+  //Serial.println(fookus);
 
   ws.cleanupClients();
 }
