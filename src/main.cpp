@@ -86,10 +86,13 @@ const int PWMResolution2 = 8;
 int dutyCycle = 0;
 
 typedef struct test_struct{
-  byte commandByte;
-  byte noteByte;
-  byte velocityByte;
-  byte channel;
+  int pwm;
+  int kiirus;
+  int suund;
+  int positsioon;
+  int kiirus2;
+  int suund3;
+  int kiirus3;
 } test_struct;
 
 test_struct myData;
@@ -98,15 +101,13 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  Serial.print("cmd: ");
-  Serial.println(myData.commandByte);
-  Serial.print("vel: ");
-  Serial.println(myData.velocityByte);
-  Serial.print("channel: ");
-  Serial.println(myData.channel);
-  Serial.print("note: ");
-  Serial.println(myData.noteByte);
-  Serial.println();
+  dutyCycle1 = myData.pwm;
+  kiirus = myData.kiirus;
+  positsioon = myData.suund;
+  positsioon2 = myData.positsioon;
+  kiirus2 = myData.kiirus2;
+  positsioon3 = myData.suund3;
+  kiirus3 = myData.kiirus3;
 }
 
 //Json Variable to Hold Slider Values
@@ -326,8 +327,9 @@ void setup() {
   pinMode(hallSensor, INPUT);
   pinMode(hallSensor2, INPUT);
 
-  initFS();
-  initWiFi();
+ WiFi.mode(WIFI_STA);
+  // initFS();
+  // initWiFi();
 
   //Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
@@ -335,7 +337,7 @@ void setup() {
     return;
   }
 
-  esp_now_register_recv_cb(OnDataRecv);
+ esp_now_register_recv_cb(OnDataRecv);
 
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
@@ -347,19 +349,19 @@ void setup() {
   /* Attach the LED PWM Channel to the GPIO Pin */
   ledcAttachPin(servoPin, PWMChannel2);
   ledcWrite(PWMChannel2, 8);
-  
 
-  initWebSocket();
-  
-  // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html", "text/html");
-  });
-  
-  server.serveStatic("/", SPIFFS, "/");
 
-  // Start server
-  //server.begin();
+  // initWebSocket();
+  
+  // //Web Server Root URL
+  // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  //   request->send(SPIFFS, "/index.html", "text/html");
+  // });
+  
+  // server.serveStatic("/", SPIFFS, "/");
+
+  // //Start server
+  // server.begin();
 
   engine.init();
    stepper = engine.stepperConnectToPin(stepPin);
@@ -392,8 +394,9 @@ void setup() {
    }
   homing1();
   homing2();
-  homing3();
-}
+  //homing3();
+  }
+
 
 void loop() {
   ledcWrite(ledChannel1, dutyCycle1);
@@ -463,6 +466,6 @@ void loop() {
   
   ledcWrite(PWMChannel2, fookus);
   //Serial.println(fookus);
-
-  ws.cleanupClients();
+  Serial.println(myData.pwm);
+  //ws.cleanupClients();
 }
