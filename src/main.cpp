@@ -95,19 +95,21 @@ typedef struct test_struct{
   int kiirus3;
 } test_struct;
 
+int getData[7];
 test_struct myData;
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&myData, incomingData, sizeof(myData));
+  memcpy(&getData, incomingData, sizeof(getData));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  dutyCycle1 = myData.pwm;
-  kiirus = myData.kiirus;
-  positsioon = myData.suund;
-  positsioon2 = myData.positsioon;
-  kiirus2 = myData.kiirus2;
-  positsioon3 = myData.suund3;
-  kiirus3 = myData.kiirus3;
+  
+  dutyCycle1 =getData[0];
+  kiirus = map(getData[1], 0, 255, 0, 16000);
+  positsioon =  map(getData[2], 0, 255, 0, 3);
+  positsioon2 =  map(getData[3], 0, 255, 6000, 1);
+  kiirus2 =  map(getData[4], 0, 255, 0, 2000);
+  positsioon3 =  map(getData[5], 0, 255, 0, 3);
+  kiirus3 = map(getData[6], 0, 255, 0, 4000);
 }
 
 //Json Variable to Hold Slider Values
