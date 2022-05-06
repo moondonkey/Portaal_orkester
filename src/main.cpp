@@ -17,7 +17,9 @@
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 #include "FastAccelStepper.h"
-#include <ESP32Servo.h>
+#include <Preferences.h>
+
+Preferences preferences;
 
 // Replace with your network credentials
 const char* ssid = "ladu";
@@ -31,27 +33,15 @@ AsyncWebSocket ws("/ws");
 
 #define dirPin 17
 #define stepPin 16
-#define dirPin2 22
-#define stepPin2 23
-#define dirPin3 19
-#define stepPin3 18
-#define servoPin 26
-#define hallSensor 33
-#define hallSensor2 34
-#define limit2 35
+#define button 34
+#define limit 35
 const int ledPin1 = 32;
 
 int homingSpeed1 = 80;
-int homingSpeed2 = 240;
-int homingSpeed3 = 80;
-int startPos1 = 0;
-int startPos2 = 6110;
-int startPos3 = 0;
+int startPos1 = 6000;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
-FastAccelStepper *stepper2 = NULL;
-FastAccelStepper *stepper3 = NULL;
 
 String message = "";
 String sliderValue1 = "0";
@@ -128,18 +118,18 @@ String getSliderValues(){
   return jsonString;
 }
 
-void homing1(){
+void homing(){
   Serial.println("homing");
-  while(analogRead(hallSensor) >= 1050) {
-   // Serial.println(analogRead(hallSensor));
+  while(analogRead(limit) <= 2500) {
+   
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
   stepper->setSpeedInHz(homingSpeed1 * 4);
   stepper->move(homingSpeed1 * -2);
   delay(1000);
-  while(analogRead(hallSensor) >= 1050) {
-   // Serial.println(analogRead(hallSensor));
+  while(analogRead(hallSensor) <= 1050) {
+   
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
   }
@@ -150,60 +140,6 @@ void homing1(){
     Serial.println(stepper->getCurrentPosition());
     kiirus = 0;
     stepper->setSpeedInHz(0);
-}
-
-void homing2(){ 
-   Serial.println("homing2");
-    while(analogRead(limit2) <= 2500 ){
-      // debugging
-      ledcWrite(ledChannel1, 60);
-
-    //  Serial.println(analogRead(limit2));
-      stepper2->setSpeedInHz(homingSpeed2);
-      stepper2->runForward();
-    }
-  ledcWrite(ledChannel1, 0);  
-  stepper2->setSpeedInHz(homingSpeed2 * 2);
-  stepper2->move(homingSpeed2 * -4);
-  delay(1000);
-  while(analogRead(limit2) <= 2500) {
-    ledcWrite(ledChannel1, 60);
-  //  Serial.println(analogRead(limit2));
-    stepper2->setSpeedInHz(homingSpeed2 /2);
-    stepper2->runForward();
-  }
-    ledcWrite(ledChannel1, 0);
-    stepper2->stopMove();
-    delay(200);
-    stepper2->setCurrentPosition(startPos2);
-    Serial.print("homed2 ");
-    Serial.println(stepper2->getCurrentPosition());
-    kiirus2 = 0;
-    stepper2->setSpeedInHz(0);
-}
-
-void homing3(){
-   Serial.println("homing3");
-  //  Serial.println(analogRead(hallSensor2));
-    while(analogRead(hallSensor2) <= 2525){
-      stepper3->setSpeedInHz(homingSpeed3);
-      stepper3->runForward();
-    }
-    stepper3->setSpeedInHz(homingSpeed3 * 4);
-  stepper3->move(homingSpeed3 * -1);
-  delay(1000);
-  while(analogRead(hallSensor2) <= 2525) {
-   // Serial.println(analogRead(hallSensor2));
-    stepper3->setSpeedInHz(homingSpeed3/2);
-    stepper3->runForward();
-  }
-    stepper3->stopMove();
-    delay(200);
-    stepper3->setCurrentPosition(startPos3);
-    Serial.print("homed3 ");
-    Serial.println(stepper3->getCurrentPosition());
-    kiirus3 = 0;
-    stepper3->setSpeedInHz(0);
 }
 
 // Initialize SPIFFS
@@ -325,21 +261,15 @@ void setup() {
 
   Serial.begin(115200);
   pinMode(ledPin1, OUTPUT);
-  pinMode(limit2, INPUT_PULLUP);
-  pinMode(hallSensor, INPUT);
-  pinMode(hallSensor2, INPUT);
+  pinMode(limit, INPUT);
+  pinMode(nupp, INPUT);
+  
 
- WiFi.mode(WIFI_STA);
-  // initFS();
-  // initWiFi();
+  preferences.begin("my-app", false);
 
-  //Init ESP-NOW
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-
- esp_now_register_recv_cb(OnDataRecv);
+  WiFi.mode(WIFI_STA);
+   initFS();
+   initWiFi();
 
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
@@ -353,22 +283,20 @@ void setup() {
   ledcWrite(PWMChannel2, 8);
 
 
-  // initWebSocket();
+  initWebSocket();
   
-  // //Web Server Root URL
-  // server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-  //   request->send(SPIFFS, "/index.html", "text/html");
-  // });
+  //Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
   
-  // server.serveStatic("/", SPIFFS, "/");
+  server.serveStatic("/", SPIFFS, "/");
 
-  // //Start server
-  // server.begin();
+  //Start server
+  server.begin();
 
   engine.init();
    stepper = engine.stepperConnectToPin(stepPin);
-   stepper2 = engine.stepperConnectToPin(stepPin2);
-   stepper3 = engine.stepperConnectToPin(stepPin3);
 
   if (stepper) 
    {
@@ -378,96 +306,22 @@ void setup() {
       stepper->setAcceleration(1500); 
       
    }
-     if (stepper2) 
-   {
-      stepper2->setDirectionPin(dirPin2);
-      stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2); 
-      stepper2->setAcceleration(800); 
-      
-   } 
-   if (stepper3) 
-   {
-      stepper3->setDirectionPin(dirPin3);
-      stepper3->setAutoEnable(false);
-      stepper3->setSpeedInHz(kiirus3); 
-      stepper3->setAcceleration(2000); 
-      
-   }
-  homing1();
-  homing2();
-  //homing3();
+
+  homing();
+
   }
 
 
 void loop() {
   ledcWrite(ledChannel1, dutyCycle1);
  
-
-      if (positsioon == 3){
-        stepper->setSpeedInHz(kiirus);
-        stepper->runForward(); 
-      }
-      else if (positsioon == 2){
-        stepper->stopMove();
-      }
-      else if (positsioon == 1){
-        stepper->setSpeedInHz(kiirus);
-        stepper->runBackward();
-
-      }
-      else if (positsioon == 4){
-        homing1();
-
-      }
-            else if (positsioon == 5){
-        stepper->setSpeedInHz(kiirus);
-        int long asukoht = stepper->getCurrentPosition();
-        stepper->moveTo(asukoht / 1600);
-
-      }
-      else{
-        stepper->stopMove();
-      }
-       if (stepper2) 
+       if (stepper) 
    {
       
-      stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2);
-      stepper2->moveTo(positsioon2);
+      stepper->setAutoEnable(false);
+      stepper->setSpeedInHz(kiirus2);
+      stepper->moveTo(positsioon2);
    }
 
-       if (positsioon3 == 3){
-        stepper3->setSpeedInHz(kiirus3 * 1.5);
-        stepper3->runForward();          
-      }
-      else if (positsioon3 == 2){
-        stepper3->stopMove();     
-      }
-      else if (positsioon3 == 1){
-        stepper3->setSpeedInHz(kiirus3 * 1.5);
-        stepper3->runBackward();
-      }
-       else if (positsioon3 == 4){
-        int long asukoht2 = stepper3->getCurrentPosition();
-        stepper3->moveTo(asukoht2 / 1600);
-      }
 
-  // Serial.print("kiirus 1 on ");
-  // Serial.print(stepper->getCurrentSpeedInMilliHz() / 1000);
-  // Serial.print(" kiirus 2 on ");
-  // Serial.print(stepper2->getCurrentSpeedInMilliHz() / 1000);
-  // Serial.print(" kiirus 3 on ");
-  // Serial.print(stepper3->getCurrentSpeedInMilliHz() / 1000);
-  // Serial.print(" pos 1 on ");
-  // Serial.print(stepper->getCurrentPosition());
-  // Serial.print(" pos 2 on ");
-  // Serial.println(stepper3->getCurrentPosition());
-      // myservo.write(fookus);
-  
-  
-  ledcWrite(PWMChannel2, fookus);
-  //Serial.println(fookus);
-  Serial.println(myData.pwm);
-  //ws.cleanupClients();
 }
