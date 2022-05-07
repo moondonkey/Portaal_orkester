@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PORTAAL TEST</title>
+    <title>VALGUS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" type="text/css" href="style.css">
@@ -15,60 +15,30 @@
     <div class="content">
         <div class="card-grid">
             <div class="card">
-                <p class="card-title">Heledus</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider1" min="0" max="100" step="1" value ="0" class="slider">
-                </p>
-                <p class="state">Brightness: <span id="sliderValue1"></span> &percnt;</p>
+                <button class="button" onmousedown="toggleCheckbox('on');" ontouchstart="toggleCheckbox('on');" onmouseup="toggleCheckbox('off');" ontouchend="toggleCheckbox('off');">LIIGU</button>
+                
             </div>
             <div class="card">
-                <p class="card-title"> Suund 1</p>
+                <p class="card-title">Heledus</p>
+                <p class="switch">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider1" min="1" max="100" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">Heledus: <span id="sliderValue1"></span> &percnt;</p>
+            </div>
+            <div class="card">
+                <p class="card-title"> Kiirus</p>
                 <p class="switch">
                     <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="1" max="5" step="1" value ="2" class="slider">
                 </p>
-                <p class="state">Suund: <span id="sliderValue2"></span></p>
+                <p class="state">Kiirus: <span id="sliderValue2"></span> &percnt;</p>
             </div>
             <div class="card">
-                <p class="card-title"> Kiirus 1</p>
+                <p class="card-title"> Valgus</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="8000" step="1" value ="0" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider2" min="1" max="2" step="1" value ="3" class="slider">
                 </p>
-                <p class="state">Brightness: <span id="sliderValue3"></span></p>
-            </div>
-            <div class="card">
-                <p class="card-title"> Positsioon 2</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider4" min="1" max="6000" step="1" value ="6000" class="slider">
-                </p>
-                <p class="state">Suund: <span id="sliderValue4"></span></p>
-            </div>
-            <div class="card">
-                <p class="card-title"> Kiirus 2</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider5" min="0" max="8000" step="1" value ="0" class="slider">
-                </p>
-                <p class="state">Brightness: <span id="sliderValue5"></span></p>
-            </div>
-            <div class="card">
-                <p class="card-title"> Fookus</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider6" min="1" max="180" step="1" value ="1" class="slider">
-                </p>
-                <p class="state">Fookus: <span id="sliderValue6"></span> &percnt;</p>
-            </div>
-            <div class="card">
-                <p class="card-title"> Suund 3</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider7" min="1" max="4" step="1" value ="2" class="slider">
-                </p>
-                <p class="state">Suund: <span id="sliderValue7"></span></p>
-            </div>
-            <div class="card">
-                <p class="card-title"> Kiirus 3</p>
-                <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider8" min="0" max="8000" step="1" value ="0" class="slider">
-                </p>
-                <p class="state">Fookus: <span id="sliderValue8"></span></p>
+                <p style="text-align:left;">LIIKUDES</p>
+                <p style="text-align:right;">ALATI</p>
             </div>
         </div>
     </div>

@@ -1,13 +1,4 @@
-/* 
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-web-server-websocket-sliders/
-  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files.
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-*/
+
 #include <esp_now.h>
 #include <Arduino.h>
 #include <WiFi.h>
@@ -18,12 +9,19 @@
 #include <Arduino_JSON.h>
 #include "FastAccelStepper.h"
 #include <Preferences.h>
+#include <ESPmDNS.h>
+
 
 Preferences preferences;
 
 // Replace with your network credentials
-const char* ssid = "ladu";
-const char* password = "laduladu";
+const char* ssid = "valgus";
+
+/* Put IP Address details */
+IPAddress local_ip(192,168,1,1);
+IPAddress gateway(192,168,1,1);
+IPAddress subnet(255,255,255,0);
+
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
@@ -31,10 +29,12 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
+
 #define dirPin 17
 #define stepPin 16
-#define button 34
-#define limit 35
+#define nupp 19
+#define limit 18
+#define tuli 35 //35 on input only!
 const int ledPin1 = 32;
 
 int homingSpeed1 = 80;
@@ -47,32 +47,14 @@ String message = "";
 String sliderValue1 = "0";
 String sliderValue2 = "2";
 String sliderValue3 = "0";
-String sliderValue4 = "6000";
-String sliderValue5 = "0";
-String sliderValue6 = "1";
-String sliderValue7 = "2";
-String sliderValue8 = "0";
-String sliderValue9 = "0";
-
+int kiirus;
 int dutyCycle1;
-int positsioon = 2;
-int positsioon2 = 6000;
-int positsioon3 = 2;
-int fookus = 9;
-int kiirus = 0;
-int kiirus2 = 0;
-int kiirus3 = 0;
-int laeng = 0;
-int homed = false;
 
 // setting PWM properties
 const int freq = 5000;
 const int ledChannel1 = 0;
 const int resolution = 8;
 
-const int PWMFreq2 = 50;
-const int PWMChannel2 = 2;
-const int PWMResolution2 = 8;
 int dutyCycle = 0;
 
 typedef struct test_struct{
@@ -88,20 +70,6 @@ typedef struct test_struct{
 int getData[7];
 test_struct myData;
 
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&getData, incomingData, sizeof(getData));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  
-  dutyCycle1 =getData[0];
-  kiirus = map(getData[1], 0, 255, 0, 16000);
-  positsioon =  map(getData[2], 0, 255, 0, 3);
-  positsioon2 =  map(getData[3], 0, 255, 6000, 1);
-  kiirus2 =  map(getData[4], 0, 255, 0, 2000);
-  positsioon3 =  map(getData[5], 0, 255, 0, 3);
-  kiirus3 = map(getData[6], 0, 255, 0, 4000);
-}
-
 //Json Variable to Hold Slider Values
 JSONVar sliderValues;
 
@@ -110,10 +78,6 @@ String getSliderValues(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(sliderValue2);
   sliderValues["sliderValue3"] = String(sliderValue3);
-  sliderValues["sliderValue4"] = String(sliderValue4);
-  sliderValues["sliderValue5"] = String(sliderValue5);
-  sliderValues["sliderValue6"] = String(sliderValue6);
-  sliderValues["sliderValue7"] = String(sliderValue7);
   String jsonString = JSON.stringify(sliderValues);
   return jsonString;
 }
@@ -128,7 +92,7 @@ void homing(){
   stepper->setSpeedInHz(homingSpeed1 * 4);
   stepper->move(homingSpeed1 * -2);
   delay(1000);
-  while(analogRead(hallSensor) <= 1050) {
+  while(analogRead(limit) > 2500) {
    
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
@@ -138,7 +102,6 @@ void homing(){
     stepper->setCurrentPosition(startPos1);
     Serial.print("homed ");
     Serial.println(stepper->getCurrentPosition());
-    kiirus = 0;
     stepper->setSpeedInHz(0);
 }
 
@@ -154,15 +117,20 @@ void initFS() {
 
 // Initialize WiFi
 void initWiFi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+
+  WiFi.softAP(ssid);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+  
+  if(!MDNS.begin("valgus")) {
+   return;
+}
   Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(1000);
-  }
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   Serial.print('.');
+  //   delay(1000);
+  // }
   Serial.println(WiFi.localIP());
-  Serial.println(WiFi.macAddress());
+  
 }
 
 void notifyClients(String sliderValues) {
@@ -183,49 +151,18 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
     if (message.indexOf("2s") >= 0) {
       sliderValue2 = message.substring(2);
-      positsioon = map(sliderValue2.toInt(), 1, 5, 1, 5);
+      dutyCycle1 = map(sliderValue2.toInt(), 1, 100, 1, 255);
       Serial.print(getSliderValues());
       
       notifyClients(getSliderValues());
     }    
     if (message.indexOf("3s") >= 0) {
       sliderValue3 = message.substring(2);
-      kiirus = map(sliderValue3.toInt(), 0, 8000, 0, 16000);
+      kiirus = map(sliderValue3.toInt(), 1, 8000, 1, 8000);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
-     if (message.indexOf("4s") >= 0) {
-      sliderValue4 = message.substring(2);
-      positsioon2 = map(sliderValue4.toInt(),1, 6000, 1, startPos2-10);
-      Serial.print(getSliderValues());
-      notifyClients(getSliderValues());
-    }
-    if (message.indexOf("5s") >= 0) {
-      sliderValue5 = message.substring(2);
-      kiirus2 = map(sliderValue5.toInt(), 0, 8000, 0, 8000);
-      Serial.print(getSliderValues());
-      notifyClients(getSliderValues());
-    }
-     if (message.indexOf("6s") >= 0) {
-      sliderValue6 = message.substring(2);
-      fookus = map(sliderValue6.toInt(), 1, 180, 9, 16);
-      Serial.print(getSliderValues());
-      notifyClients(getSliderValues());
-    }
-    if (message.indexOf("7s") >= 0) {
-      sliderValue7 = message.substring(2);
-      positsioon3 = map(sliderValue7.toInt(), 1, 4, 1, 4);
-      Serial.print(getSliderValues());
-      notifyClients(getSliderValues());
-      }
-    if (message.indexOf("8s") >= 0) {
-      sliderValue8 = message.substring(2);
-      kiirus3 = map(sliderValue8.toInt(), 0, 900, 0, 8000);
-      Serial.print(getSliderValues());
-      notifyClients(getSliderValues());
-      }  
-    
-   
+       
     if (strcmp((char*)data, "getValues") == 0) {
       notifyClients(getSliderValues());
     }
@@ -254,7 +191,21 @@ void initWebSocket() {
   server.addHandler(&ws);
 }
 
+void liikumine(){
 
+      ledcWrite(ledChannel1, dutyCycle1);
+ 
+      stepper->setAutoEnable(false);
+      stepper->setSpeedInHz(kiirus);
+      stepper->moveTo(6000);
+      delay(100);
+      stepper->moveTo(0);
+
+      ledcWrite(ledChannel1, 0);
+   
+
+
+}
 void setup() {
   // Start ElegantOTA
   //AsyncElegantOTA.begin(&server);    
@@ -267,7 +218,6 @@ void setup() {
 
   preferences.begin("my-app", false);
 
-  WiFi.mode(WIFI_STA);
    initFS();
    initWiFi();
 
@@ -276,11 +226,6 @@ void setup() {
 
   // attach the channel to the GPIO to be controlled
   ledcAttachPin(ledPin1, ledChannel1);
-
-  ledcSetup(PWMChannel2, PWMFreq2, PWMResolution2);
-  /* Attach the LED PWM Channel to the GPIO Pin */
-  ledcAttachPin(servoPin, PWMChannel2);
-  ledcWrite(PWMChannel2, 8);
 
 
   initWebSocket();
@@ -313,15 +258,8 @@ void setup() {
 
 
 void loop() {
-  ledcWrite(ledChannel1, dutyCycle1);
- 
-       if (stepper) 
-   {
+  
       
-      stepper->setAutoEnable(false);
-      stepper->setSpeedInHz(kiirus2);
-      stepper->moveTo(positsioon2);
-   }
 
 
 }
