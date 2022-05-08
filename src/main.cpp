@@ -3,8 +3,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
+#include <AsyncElegantOTA.h>
 #include <ESPAsyncWebServer.h>
-//#include <AsyncElegantOTA.h>
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 #include "FastAccelStepper.h"
@@ -22,53 +22,45 @@ IPAddress local_ip(192,168,1,1);
 IPAddress gateway(192,168,1,1);
 IPAddress subnet(255,255,255,0);
 
-
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
-
 #define dirPin 17
 #define stepPin 16
 #define nupp 19
 #define limit 18
-#define tuli 35 //35 on input only!
+#define tuli 25 //35 on input only!
 const int ledPin1 = 32;
 
-int homingSpeed1 = 80;
-int startPos1 = 6000;
+int maxKiirus = 16000;
+int homingSpeed1 = 400;
+int startPos1 = 0;
+int ulatus = -130000;
+bool liikumineState = false;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
-
+int kiirus = 1;
+int dutyCycle1 = 1;
 String message = "";
-String sliderValue1 = "0";
-String sliderValue2 = "2";
-String sliderValue3 = "0";
-int kiirus;
-int dutyCycle1;
+String sliderValue1 = "1";
+String sliderValue2 = String(dutyCycle1);
+String sliderValue3 = String(kiirus);
+String sliderValue4 = "4";
+
 
 // setting PWM properties
 const int freq = 5000;
 const int ledChannel1 = 0;
 const int resolution = 8;
 
+const int ledChannel2 = 1;
+
+
 int dutyCycle = 0;
-
-typedef struct test_struct{
-  int pwm;
-  int kiirus;
-  int suund;
-  int positsioon;
-  int kiirus2;
-  int suund3;
-  int kiirus3;
-} test_struct;
-
-int getData[7];
-test_struct myData;
 
 //Json Variable to Hold Slider Values
 JSONVar sliderValues;
@@ -78,21 +70,27 @@ String getSliderValues(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(sliderValue2);
   sliderValues["sliderValue3"] = String(sliderValue3);
+  sliderValues["sliderValue4"] = String(sliderValue4);
   String jsonString = JSON.stringify(sliderValues);
   return jsonString;
 }
+void liikumine(void);
 
 void homing(){
   Serial.println("homing");
-  while(analogRead(limit) <= 2500) {
-   
+  while(digitalRead(limit) == LOW) {
+    ledcWrite(ledChannel1, 255);
+     ledcWrite(ledChannel2, 255);
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
-  stepper->setSpeedInHz(homingSpeed1 * 4);
+  Serial.println("homing1");
+  ledcWrite(ledChannel1, 0);
+  ledcWrite(ledChannel2, 0);
+  stepper->setSpeedInHz(homingSpeed1 * 8);
   stepper->move(homingSpeed1 * -2);
   delay(1000);
-  while(analogRead(limit) > 2500) {
+  while(digitalRead(limit) == LOW) {
    
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
@@ -145,20 +143,21 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     Serial.println(message);
     if (message.indexOf("1s") >= 0) {
       sliderValue1 = message.substring(2);
-      dutyCycle1 = map(sliderValue1.toInt(), 0, 100, 0, 255);
-      Serial.print("lamp");
+      liikumine();
       notifyClients(getSliderValues());
     }
     if (message.indexOf("2s") >= 0) {
       sliderValue2 = message.substring(2);
       dutyCycle1 = map(sliderValue2.toInt(), 1, 100, 1, 255);
+      preferences.putInt("heledus", dutyCycle1);
       Serial.print(getSliderValues());
       
       notifyClients(getSliderValues());
     }    
     if (message.indexOf("3s") >= 0) {
       sliderValue3 = message.substring(2);
-      kiirus = map(sliderValue3.toInt(), 1, 8000, 1, 8000);
+      kiirus = map(sliderValue3.toInt(), 1, 100, maxKiirus/100, maxKiirus);
+      preferences.putInt("kiirus", kiirus);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -192,40 +191,46 @@ void initWebSocket() {
 }
 
 void liikumine(){
-
-      ledcWrite(ledChannel1, dutyCycle1);
- 
+      ledcWrite(ledChannel2, 0);
+      
       stepper->setAutoEnable(false);
       stepper->setSpeedInHz(kiirus);
-      stepper->moveTo(6000);
-      delay(100);
+      stepper->moveTo(ulatus);
+      while(stepper->targetPos() != stepper->getCurrentPosition()){
+        ledcWrite(ledChannel1, dutyCycle1);
+        stepper->setSpeedInHz(kiirus);
+      }
       stepper->moveTo(0);
-
-      ledcWrite(ledChannel1, 0);
-   
-
-
+      while(stepper->targetPos() != stepper->getCurrentPosition()){
+        ledcWrite(ledChannel1, dutyCycle1);
+        stepper->setSpeedInHz(kiirus);
+      }
+      
+      ledcWrite(ledChannel1,0);
 }
 void setup() {
-  // Start ElegantOTA
-  //AsyncElegantOTA.begin(&server);    
-
   Serial.begin(115200);
   pinMode(ledPin1, OUTPUT);
+  pinMode(tuli, OUTPUT);
   pinMode(limit, INPUT);
   pinMode(nupp, INPUT);
   
-
   preferences.begin("my-app", false);
+  kiirus = preferences.getInt("kiirus", 1);
+  dutyCycle1 = preferences.getInt("heledus", 1);
+  notifyClients(getSliderValues());
 
    initFS();
    initWiFi();
+   AsyncElegantOTA.begin(&server);  
 
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
+  ledcSetup(ledChannel2, freq, resolution);
 
   // attach the channel to the GPIO to be controlled
   ledcAttachPin(ledPin1, ledChannel1);
+  ledcAttachPin(tuli,ledChannel2);
 
 
   initWebSocket();
@@ -248,18 +253,22 @@ void setup() {
       stepper->setDirectionPin(dirPin);
       stepper->setAutoEnable(false);
       stepper->setSpeedInHz(kiirus);
-      stepper->setAcceleration(1500); 
+      stepper->setAcceleration(8000); 
       
    }
-
+  
   homing();
 
   }
 
 
 void loop() {
-  
-      
+    ledcWrite(ledChannel2, 255);
 
+  if (digitalRead(nupp) == HIGH)
+  {
+    liikumine();
+  }
+  
 
 }
