@@ -38,7 +38,7 @@ const int ledPin1 = 32;
 int maxKiirus = 32000;
 int homingSpeed1 = 400;
 int startPos1 = 0;
-int ulatus = -130000;
+int ulatus = -140000;
 bool liikumineState = false;
 bool valgusState = false;
 
@@ -105,6 +105,8 @@ void homing(){
     stepper->runForward();
   }
     stepper->stopMove();
+    delay(200);
+    stepper->move(-400);
     delay(200);
     stepper->setCurrentPosition(startPos1);
     Serial.print("homed ");
