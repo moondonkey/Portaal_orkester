@@ -42,6 +42,12 @@ function updateSliderPWM(element) {
     websocket.send(sliderNumber+"s"+sliderValue.toString());
 }
 
+function toggleCheckbox(x) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/" + x, true);
+    xhr.send();
+  }
+
 
 function onMessage(event) {
     console.log(event.data);

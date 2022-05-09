@@ -30,12 +30,12 @@ AsyncWebSocket ws("/ws");
 
 #define dirPin 17
 #define stepPin 16
-#define nupp 19
-#define limit 18
-#define tuli 25 //35 on input only!
-const int ledPin1 = 32;
+#define nupp 35
+#define limit 34
+#define tuli 25 
+const int ledPin1 = 32; 
 
-int maxKiirus = 16000;
+int maxKiirus = 32000;
 int homingSpeed1 = 400;
 int startPos1 = 0;
 int ulatus = -130000;
@@ -66,6 +66,16 @@ int dutyCycle = 0;
 JSONVar sliderValues;
 
 //Get Slider Values
+
+String getSliderValuesStart(){
+  sliderValues["sliderValue1"] = String(sliderValue1);
+  sliderValues["sliderValue2"] = String(preferences.getInt("kiirus", 1));
+  sliderValues["sliderValue3"] = String(preferences.getInt("heledus", 1));
+  sliderValues["sliderValue4"] = String(sliderValue4);
+  String jsonString = JSON.stringify(sliderValues);
+  return jsonString;
+}
+
 String getSliderValues(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(sliderValue2);
@@ -78,9 +88,8 @@ void liikumine(void);
 
 void homing(){
   Serial.println("homing");
-  while(digitalRead(limit) == LOW) {
-    ledcWrite(ledChannel1, 255);
-     ledcWrite(ledChannel2, 255);
+  while(analogRead(limit) <= 4090) {
+    ledcWrite(ledChannel1, 125);
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
@@ -90,7 +99,7 @@ void homing(){
   stepper->setSpeedInHz(homingSpeed1 * 8);
   stepper->move(homingSpeed1 * -2);
   delay(1000);
-  while(digitalRead(limit) == LOW) {
+  while(analogRead(limit) <= 4090) {
    
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
@@ -190,6 +199,8 @@ void initWebSocket() {
   server.addHandler(&ws);
 }
 
+
+
 void liikumine(){
       ledcWrite(ledChannel2, 0);
       
@@ -218,7 +229,7 @@ void setup() {
   preferences.begin("my-app", false);
   kiirus = preferences.getInt("kiirus", 1);
   dutyCycle1 = preferences.getInt("heledus", 1);
-  notifyClients(getSliderValues());
+  notifyClients(getSliderValuesStart());
 
    initFS();
    initWiFi();
@@ -232,6 +243,7 @@ void setup() {
   ledcAttachPin(ledPin1, ledChannel1);
   ledcAttachPin(tuli,ledChannel2);
 
+  ledcWrite(ledChannel2, 0);
 
   initWebSocket();
   
@@ -239,6 +251,11 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", "text/html");
   });
+
+  server.on("/on", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    liikumine();
+  request->send(200, "text/plain", "ok");
+});
   
   server.serveStatic("/", SPIFFS, "/");
 
@@ -269,6 +286,6 @@ void loop() {
   {
     liikumine();
   }
-  
+    
 
 }
