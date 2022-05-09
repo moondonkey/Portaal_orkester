@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": " testtesttest",
+			"path": "..\\..\\..\\..\\Documents\\PlatformIO\\Projects\\ testtesttest"
+		},
+		{
+			"name": "Parkalamp",
+			"path": "..\\..\\..\\..\\Documents\\PlatformIO\\Projects\\Parkalamp"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"functional": "cpp",
+			"kood": "cpp"
+		}
+	}
+}
