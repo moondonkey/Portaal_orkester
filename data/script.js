@@ -2,6 +2,7 @@
 
 var gateway = `ws://${window.location.hostname}/ws`;
 var websocket;
+var tekst;
 window.addEventListener('load', onload);
 
 function onload(event) {
@@ -40,6 +41,19 @@ function updateSliderPWM(element) {
     document.getElementById("sliderValue"+sliderNumber).innerHTML = sliderValue;
     console.log(sliderValue);
     websocket.send(sliderNumber+"s"+sliderValue.toString());
+    if (document.getElementById("sliderValue4").innerHTML = 1)
+    {
+        document.getElementById("tekst").innerHTML = "Ainult liikumisel";
+       
+    }
+    else if (document.getElementById("sliderValue4").innerHTML = 2)
+    {
+        document.getElementById("tekst").innerHTML = "Alati";
+    }
+function go(element) {
+    
+    console.log("go");
+    websocket.send("1s100");
 }
 
 function toggleCheckbox(x) {

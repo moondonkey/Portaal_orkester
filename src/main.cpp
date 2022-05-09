@@ -40,6 +40,7 @@ int homingSpeed1 = 400;
 int startPos1 = 0;
 int ulatus = -130000;
 bool liikumineState = false;
+bool valgusState = false;
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
 FastAccelStepper *stepper = NULL;
@@ -54,10 +55,9 @@ String sliderValue4 = "4";
 
 // setting PWM properties
 const int freq = 5000;
-const int ledChannel1 = 0;
+const int ledChannel1 = 0; //peavalgus
 const int resolution = 8;
-
-const int ledChannel2 = 1;
+const int ledChannel2 = 1; //nupu valgus
 
 
 int dutyCycle = 0;
@@ -71,7 +71,7 @@ String getSliderValuesStart(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(preferences.getInt("kiirus", 1));
   sliderValues["sliderValue3"] = String(preferences.getInt("heledus", 1));
-  sliderValues["sliderValue4"] = String(sliderValue4);
+  sliderValues["sliderValue4"] = String(preferences.getInt("valgusState", 1));
   String jsonString = JSON.stringify(sliderValues);
   return jsonString;
 }
@@ -150,10 +150,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     data[len] = 0;
     message = (char*)data;
     Serial.println(message);
-    if (message.indexOf("1s") >= 0) {
-      sliderValue1 = message.substring(2);
-      liikumine();
-      notifyClients(getSliderValues());
+    if (message== "1s100") {
+      //sliderValue1 = message.substring(2);
+      liikumineState = true;
+      //notifyClients(getSliderValues());
     }
     if (message.indexOf("2s") >= 0) {
       sliderValue2 = message.substring(2);
@@ -167,6 +167,20 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
       sliderValue3 = message.substring(2);
       kiirus = map(sliderValue3.toInt(), 1, 100, maxKiirus/100, maxKiirus);
       preferences.putInt("kiirus", kiirus);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("4s") >= 0) {
+      sliderValue4 = message.substring(2);
+      if(sliderValue4.toInt() == 1){
+        valgusState = false;
+        preferences.putInt("valgusState", 1);
+      }
+      else{
+        valgusState = true;
+        preferences.putInt("valgusState", 2);
+      }
+      
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -218,6 +232,7 @@ void liikumine(){
       }
       
       ledcWrite(ledChannel1,0);
+      liikumineState = false;
 }
 void setup() {
   Serial.begin(115200);
@@ -229,6 +244,12 @@ void setup() {
   preferences.begin("my-app", false);
   kiirus = preferences.getInt("kiirus", 1);
   dutyCycle1 = preferences.getInt("heledus", 1);
+  if (preferences.getInt("valgusState", 1) == 1){
+    valgusState = false;
+  }
+  else if (preferences.getInt("valgusState", 1) == 2){
+    valgusState = true;
+  }
   notifyClients(getSliderValuesStart());
 
    initFS();
@@ -251,11 +272,6 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", "text/html");
   });
-
-  server.on("/on", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    liikumine();
-  request->send(200, "text/plain", "ok");
-});
   
   server.serveStatic("/", SPIFFS, "/");
 
@@ -281,11 +297,22 @@ void setup() {
 
 void loop() {
     ledcWrite(ledChannel2, 255);
+    if (valgusState == true){
+      ledcWrite(ledChannel1, dutyCycle1);
+    }
+    else if(valgusState == false){
+      ledcWrite(ledChannel1, 0);
+    }
 
-  if (digitalRead(nupp) == HIGH)
+
+
+  if (digitalRead(nupp) == HIGH && liikumineState == false)
   {
-    liikumine();
+    liikumineState = true;
   }
     
 
+  if (liikumineState == true){
+    liikumine();
+  }
 }
