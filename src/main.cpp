@@ -48,9 +48,9 @@ int kiirus = 1;
 int dutyCycle1 = 1;
 String message = "";
 String sliderValue1 = "1";
-String sliderValue2 = String(dutyCycle1);
-String sliderValue3 = String(kiirus);
-String sliderValue4 = "4";
+String sliderValue2 = String(preferences.getInt("kiirus", 50));
+String sliderValue3 = String(preferences.getInt("heledus", 1));
+String sliderValue4 = String(preferences.getInt("valgusState", 1));
 
 
 // setting PWM properties
@@ -188,6 +188,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
        
     if (strcmp((char*)data, "getValues") == 0) {
+      Serial.println("küsitakse infot");
       notifyClients(getSliderValues());
     }
   
