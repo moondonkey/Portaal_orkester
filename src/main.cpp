@@ -17,7 +17,7 @@
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 #include "FastAccelStepper.h"
-#include <ESP32Servo.h>
+#include <WebSerial.h>
 
 // Replace with your network credentials
 const char* ssid = "ladu";
@@ -34,20 +34,23 @@ AsyncWebSocket ws("/ws");
 #define dirPin2 19
 #define stepPin2 18
 #define dirPin3 22 //19
-#define stepPin3 1 //18
-#define servoPin 26 
+#define stepPin3 21 //1 - muutsin ära, et saaks Seriali kasutada.
 #define hallSensor 33
 #define hallSensor2 34
 #define limit2 35
 const int ledPin1 = 12; //32
 
-int tuningRange = 6500;
-int homingSpeed1 = 80;
+int tuningRange = 53000;
+int homingSpeed1 = 640;
 int homingSpeed2 = 2400;
 int homingSpeed3 = 240;
 int startPos1 = 0;
 int startPos2 = tuningRange + 50;
 int startPos3 = 0;
+
+//staatus, et salvestada ketta olek
+int diskState = 0;
+int lastDiskState = 0;
 
 
 FastAccelStepperEngine engine = FastAccelStepperEngine();
@@ -68,42 +71,42 @@ String sliderValue9 = "0";
 
 int dutyCycle1;
 int positsioon = 2;
-int positsioon2 = 6000;
+int positsioon2 = 65000;
 int positsioon3 = 2;
-int fookus = 9;
 int kiirus = 0;
+int diskKiirendus = 24000;
 int kiirus2 = 0;
 int kiirus3 = 0;
 int laeng = 0;
 int homed = false;
 
-long ketaslugeja = 0;
-
 // setting PWM properties
 const int freq = 5000;
 const int ledChannel1 = 0;
 const int resolution = 8;
-
-const int PWMFreq2 = 50;
-const int PWMChannel2 = 2;
-const int PWMResolution2 = 8;
 int dutyCycle = 0;
 
 int getData[7];
 
+void recvMsg(uint8_t *data, size_t len){
+  WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+  WebSerial.println(d);
+}
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&getData, incomingData, sizeof(getData));
-  //Serial.print("Bytes received: ");
-  //Serial.println(len);
-  
+
   dutyCycle1 =getData[0]; // Light output
-  kiirus = map(getData[1], 0, 255, 0, 110000); // speed of the disk
+  kiirus = map(getData[1], 0, 255, 0, 55000); // speed of the disk
   positsioon =  map(getData[2], 0, 255, 0, 3); // direction of the disk
   positsioon2 =  map(getData[3], 0, 255, tuningRange, 1); // tuning
-  kiirus2 =  map(getData[4], 0, 255, 0, 2000);  // tuning speed
+  kiirus2 =  map(getData[4], 0, 255, 0, 20000);  // tuning speed
   positsioon3 =  map(getData[5], 0, 255, 0, 3); // pick direction 
-  kiirus3 = map(getData[6], 0, 255, 0, 132000); // pick speed
+  kiirus3 = map(getData[6], 0, 255, 0, 62000); // pick speed
 }
 
 //Json Variable to Hold Slider Values
@@ -122,21 +125,33 @@ String getSliderValues(){
   return jsonString;
 }
 
-void homingtest(){
-  
-    while(digitalRead(limit2) == HIGH ){
-      Serial.println("test test test");
-    }
-    while(digitalRead(limit2) == LOW ){
-      Serial.println("ah ah ah");
-    }
-}
+int long previousTime = 0;
 
+void hallTest(){
+  
+  
+  int long presentTime = millis();
+  if(presentTime - previousTime >= 500){
+    previousTime = millis();
+  // adcAttachPin(hallSensor);
+  // adcAttachPin(hallSensor2);
+  // analogReadResolution(9);
+  // analogSetAttenuation(ADC_6db);
+  WebSerial.print("Hall 1: ");
+  WebSerial.println(analogRead(hallSensor));
+  WebSerial.print("Hall 2: ");
+  WebSerial.println(analogRead(hallSensor2));
+
+  }
+
+
+
+}
 void homing1(){
-  Serial.println("homing");
+  Serial.println("homing1");
   
   while(analogRead(hallSensor) >= 1050 && analogRead(hallSensor) <= 2525 ) {
-    Serial.println(analogRead(hallSensor));
+    
     stepper->setSpeedInHz(homingSpeed1);
     stepper->runForward();
   }
@@ -144,7 +159,7 @@ void homing1(){
   stepper->move(homingSpeed1 * -2);
   delay(1000);
   while(analogRead(hallSensor) >= 1050 && analogRead(hallSensor) <= 2525) {
-   // Serial.println(analogRead(hallSensor));
+   
     stepper->setSpeedInHz(homingSpeed1/2);
     stepper->runForward();
   }
@@ -153,8 +168,7 @@ void homing1(){
     stepper->setCurrentPosition(startPos1);
     Serial.print("homed ");
     Serial.println(stepper->getCurrentPosition());
-    kiirus = 0;
-    stepper->setSpeedInHz(0);
+
 }
 
 void homing2(){ 
@@ -169,7 +183,7 @@ void homing2(){
     }
   ledcWrite(ledChannel1, 0);  
   stepper2->setSpeedInHz(homingSpeed2 * 2);
-  stepper2->move(homingSpeed2 * -4);
+  stepper2->move(homingSpeed2 * -2);
   delay(1000);
   while(analogRead(limit2) <= 2500) {
     ledcWrite(ledChannel1, 60);
@@ -214,10 +228,10 @@ void homing3(){
 // Initialize SPIFFS
 void initFS() {
   if (!SPIFFS.begin()) {
-    Serial.println("An error has occurred while mounting SPIFFS");
+    //Serial.println("An error has occurred while mounting SPIFFS");
   }
   else{
-   Serial.println("SPIFFS mounted successfully");
+   //Serial.println("SPIFFS mounted successfully");
   }
 }
 
@@ -277,7 +291,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }
      if (message.indexOf("6s") >= 0) {
       sliderValue6 = message.substring(2);
-      fookus = map(sliderValue6.toInt(), 1, 180, 9, 16);
+      
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
@@ -328,36 +342,33 @@ void setup() {
   // Start ElegantOTA
   //AsyncElegantOTA.begin(&server);    
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
   pinMode(ledPin1, OUTPUT);
   pinMode(limit2, INPUT);
   pinMode(hallSensor, INPUT);
   pinMode(hallSensor2, INPUT);
 
- WiFi.mode(WIFI_STA);
-  Serial.println(WiFi.macAddress());
+  WiFi.mode(WIFI_STA);
+  //Serial.println(WiFi.macAddress());
   // initFS();
-  // initWiFi();
+  //initWiFi();
 
+  //WebSerial.begin(&server);
+  //WebSerial.msgCallback(recvMsg);
+  
   //Init ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-
+  
  esp_now_register_recv_cb(OnDataRecv);
-
+  
   // configure LED PWM functionalitites
   ledcSetup(ledChannel1, freq, resolution);
 
   // attach the channel to the GPIO to be controlled
   ledcAttachPin(ledPin1, ledChannel1);
-
-  ledcSetup(PWMChannel2, PWMFreq2, PWMResolution2);
-  /* Attach the LED PWM Channel to the GPIO Pin */
-  ledcAttachPin(servoPin, PWMChannel2);
-  ledcWrite(PWMChannel2, 8);
- 
 
   // initWebSocket();
   
@@ -369,7 +380,7 @@ void setup() {
   // server.serveStatic("/", SPIFFS, "/");
 
   // //Start server
-  // server.begin();
+   //server.begin();
 
   engine.init();
    stepper = engine.stepperConnectToPin(stepPin);
@@ -381,7 +392,7 @@ void setup() {
       stepper->setDirectionPin(dirPin);
       stepper->setAutoEnable(false);
       stepper->setSpeedInHz(kiirus);
-      stepper->setAcceleration(24000); 
+      stepper->setAcceleration(diskKiirendus); 
       
    }
      if (stepper2) 
@@ -400,35 +411,113 @@ void setup() {
       stepper3->setAcceleration(32000); 
       
    }
-  //homingtest();
+  
   homing1();
-  homing2();
+  //homing2();
   //homing3();
   }
 
 
 void loop() {
   ledcWrite(ledChannel1, dutyCycle1);
- 
+  
+  
 
-      if (positsioon == 3){
+      if (positsioon == 3 && lastDiskState != positsioon){
+        lastDiskState = positsioon;
         stepper->setSpeedInHz(kiirus);
         stepper->runForward(); 
-       
+        
+      }
+      else if (positsioon == 3 && lastDiskState == positsioon){
+        stepper->setSpeedInHz(kiirus);
+        stepper->runForward(); 
+        
       }
 
-      else if (positsioon == 2 || positsioon == 0){
-
-        stepper->stopMove();
-        
+      else if ((positsioon == 0 || positsioon == 2) && lastDiskState != positsioon){
+        lastDiskState = positsioon; 
+        int peatumisVahemaa;
+        long int asukoht = stepper->getCurrentPosition();
+        //Serial.print("asukoht: ");
+        //Serial.println(asukoht);
+        int hetkKiirus = stepper->getCurrentSpeedInMilliHz() / 1000;
+        //Serial.print("HetkKiirus: ");
+        //Serial.println(hetkKiirus);
+        if (stepper->getCurrentAcceleration() == 0){
+          peatumisVahemaa = sq(hetkKiirus) / (-2* diskKiirendus);
         }
-         
-      
-      else if (positsioon == 1){
+        else {
+          peatumisVahemaa = sq(hetkKiirus) / (2*(stepper->getCurrentAcceleration()));
+        }
+        
+        // Serial.print("kiirendus: ");
+        // Serial.println(stepper->getCurrentAcceleration());
+        // Serial.print("peatumisVahemaa: ");
+        // Serial.println(peatumisVahemaa);
+        // Täisring on 32*200 = 6400 sammu
+        //int vaheNullini = asukoht % 6400;
+        //int vaheRingist = 6400 - vaheNullini;
+        // Serial.print("vaheNullini: ");
+        // Serial.println(vaheNullini);
+        int minAbsSeiskumispunkt = (asukoht % 6400) + abs(peatumisVahemaa);
+        stepper->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa));
+        // Serial.print("sihtkoht");
+        // Serial.println(stepper->targetPos());
+        // Serial.println("");
+      }
+      else if (positsioon == 1 && lastDiskState != positsioon){
+        lastDiskState = positsioon;
         stepper->setSpeedInHz(kiirus);
         stepper->runBackward();
-      
+        
       }
+       else if (positsioon == 1 && lastDiskState == positsioon){
+        stepper->setSpeedInHz(kiirus);
+        stepper->runForward(); 
+        
+      }
+      else {
+        stepper->setSpeedInHz(kiirus);
+        
+      }
+
+      // if (positsioon == 3 || diskState != lastDiskState){
+      //   diskState = 3;
+      //   lastDiskState = diskState;
+      //   stepper->setSpeedInHz(kiirus);
+      //   stepper->runForward(); 
+       
+       
+      // }
+
+      // else if (positsioon == 2 || positsioon == 0){
+      //   long int asukoht = stepper->getCurrentPosition();
+      //   int hetkKiirus = stepper->getCurrentSpeedInMilliHz();
+      //   int peatumisVahemaa = hetkKiirus*hetkKiirus / 2*stepper->getCurrentAcceleration() + 200;
+      //   // Täisring on 32*200 = 6400 sammu
+      //   int vaheNullini = asukoht % 6400;
+      //   if (peatumisVahemaa > vaheNullini){
+      //     stepper->moveTo(vaheNullini + 6400);
+      //   }
+      //   else{
+      //     stepper->moveTo(vaheNullini);
+      //   }
+        
+
+      
+
+        
+      //   //stepper->stopMove();
+        
+      //   }
+         
+      
+      // else if (positsioon == 1){
+      //   stepper->setSpeedInHz(kiirus);
+      //   stepper->runBackward();
+       
+      // }
 
        if (stepper2) 
    {
@@ -440,9 +529,7 @@ void loop() {
 
        if (positsioon3 == 3){
         stepper3->setSpeedInHz(kiirus3);
-        stepper3->runForward();
-        Serial.print("pick speed"); 
-        Serial.println(kiirus3);         
+        stepper3->runForward();        
       }
       else if (positsioon3 == 2 || positsioon3 == 0){
         //stepper->setSpeedInHz(0);
@@ -451,10 +538,8 @@ void loop() {
       else if (positsioon3 == 1){
         stepper3->setSpeedInHz(kiirus3);
         stepper3->runBackward();
-        Serial.print("pick speed"); 
-        Serial.println(kiirus3);
+        
       }
 
-  ledcWrite(PWMChannel2, fookus);
 
 }
