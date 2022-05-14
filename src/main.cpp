@@ -439,32 +439,19 @@ void loop() {
         lastDiskState = positsioon; 
         int peatumisVahemaa;
         long int asukoht = stepper->getCurrentPosition();
-        //Serial.print("asukoht: ");
-        //Serial.println(asukoht);
+
         int hetkKiirus = stepper->getCurrentSpeedInMilliHz() / 1000;
-        //Serial.print("HetkKiirus: ");
-        //Serial.println(hetkKiirus);
-        if (stepper->getCurrentAcceleration() == 0){
+    
+        // if (stepper->getCurrentAcceleration() == 0){
           peatumisVahemaa = sq(hetkKiirus) / (-2* diskKiirendus);
-        }
-        else {
-          peatumisVahemaa = sq(hetkKiirus) / (2*(stepper->getCurrentAcceleration()));
-        }
+        // }
+        // else {
+        //   peatumisVahemaa = sq(hetkKiirus) / (2*(stepper->getCurrentAcceleration()));
+        // }
         
-        // Serial.print("kiirendus: ");
-        // Serial.println(stepper->getCurrentAcceleration());
-        // Serial.print("peatumisVahemaa: ");
-        // Serial.println(peatumisVahemaa);
-        // Täisring on 32*200 = 6400 sammu
-        //int vaheNullini = asukoht % 6400;
-        //int vaheRingist = 6400 - vaheNullini;
-        // Serial.print("vaheNullini: ");
-        // Serial.println(vaheNullini);
         int minAbsSeiskumispunkt = (asukoht % 6400) + abs(peatumisVahemaa);
-        stepper->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa));
-        // Serial.print("sihtkoht");
-        // Serial.println(stepper->targetPos());
-        // Serial.println("");
+        stepper->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50));
+
       }
       else if (positsioon == 1 && lastDiskState != positsioon){
         lastDiskState = positsioon;
@@ -474,7 +461,7 @@ void loop() {
       }
        else if (positsioon == 1 && lastDiskState == positsioon){
         stepper->setSpeedInHz(kiirus);
-        stepper->runForward(); 
+        stepper->runBackward(); 
         
       }
       else {
