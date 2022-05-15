@@ -49,7 +49,6 @@ int startPos2 = tuningRange + 50;
 int startPos3 = 0;
 
 //staatus, et salvestada ketta olek
-int diskState = 0;
 int lastDiskState = 0;
 
 
@@ -125,28 +124,6 @@ String getSliderValues(){
   return jsonString;
 }
 
-int long previousTime = 0;
-
-void hallTest(){
-  
-  
-  int long presentTime = millis();
-  if(presentTime - previousTime >= 500){
-    previousTime = millis();
-  // adcAttachPin(hallSensor);
-  // adcAttachPin(hallSensor2);
-  // analogReadResolution(9);
-  // analogSetAttenuation(ADC_6db);
-  WebSerial.print("Hall 1: ");
-  WebSerial.println(analogRead(hallSensor));
-  WebSerial.print("Hall 2: ");
-  WebSerial.println(analogRead(hallSensor2));
-
-  }
-
-
-
-}
 void homing1(){
   Serial.println("homing1");
   
@@ -172,12 +149,8 @@ void homing1(){
 }
 
 void homing2(){ 
-   Serial.println("homing2");
     while(analogRead(limit2) <= 2500 ){
-      // debugging
       ledcWrite(ledChannel1, 60);
-
-    //  Serial.println(analogRead(limit2));
       stepper2->setSpeedInHz(homingSpeed2);
       stepper2->runForward();
     }
@@ -187,7 +160,6 @@ void homing2(){
   delay(1000);
   while(analogRead(limit2) <= 2500) {
     ledcWrite(ledChannel1, 60);
-  //  Serial.println(analogRead(limit2));
     stepper2->setSpeedInHz(homingSpeed2 /2);
     stepper2->runForward();
   }
@@ -442,17 +414,46 @@ void loop() {
 
         int hetkKiirus = stepper->getCurrentSpeedInMilliHz() / 1000;
     
-        // if (stepper->getCurrentAcceleration() == 0){
-          peatumisVahemaa = sq(hetkKiirus) / (-2* diskKiirendus);
-        // }
-        // else {
-        //   peatumisVahemaa = sq(hetkKiirus) / (2*(stepper->getCurrentAcceleration()));
-        // }
+
+          peatumisVahemaa = sq(hetkKiirus) / (2 * diskKiirendus);
+
         
+       if(stepper->getCurrentSpeedInMilliHz() > 0){
+       
         int minAbsSeiskumispunkt = (asukoht % 6400) + abs(peatumisVahemaa);
+        // Serial.println(); 
+        // Serial.print("minAbsSeiskumispunkt % 6400: ");
+        // Serial.println(minAbsSeiskumispunkt % 6400);
+        // Serial.print("abs(peatumisvahemaa): ");
+        // Serial.println(abs(peatumisVahemaa));
+        // Serial.print("hetkKiirus: ");
+        // Serial.println(hetkKiirus);
+        // Serial.print("move: ");
+        Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
         stepper->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50));
+       }
+       else{
+        int minAbsSeiskumispunkt = (-asukoht % 6400) - (peatumisVahemaa);
+        // Serial.println(); 
+        // Serial.print("minAbsSeiskumispunkt % 6400: ");
+        // Serial.println(minAbsSeiskumispunkt % 6400);
+        // Serial.print("abs(peatumisvahemaa): ");
+        // Serial.println(abs(peatumisVahemaa));
+        // Serial.print("hetkKiirus: ");
+        // Serial.println(hetkKiirus);
+        // Serial.print("move: ");
+        Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
+        stepper->move((6400 - (minAbsSeiskumispunkt % 6400) - abs(peatumisVahemaa) + (hetkKiirus / 50)) * -1);
+       }
+        
+      //  }
+      //   else {
+      //     stepper->move((6400 - (minAbsSeiskumispunkt % 6400) + (peatumisVahemaa) - (hetkKiirus / 50)) * -1);
+      //   }
+       
 
       }
+
       else if (positsioon == 1 && lastDiskState != positsioon){
         lastDiskState = positsioon;
         stepper->setSpeedInHz(kiirus);
@@ -465,46 +466,8 @@ void loop() {
         
       }
       else {
-        stepper->setSpeedInHz(kiirus);
         
       }
-
-      // if (positsioon == 3 || diskState != lastDiskState){
-      //   diskState = 3;
-      //   lastDiskState = diskState;
-      //   stepper->setSpeedInHz(kiirus);
-      //   stepper->runForward(); 
-       
-       
-      // }
-
-      // else if (positsioon == 2 || positsioon == 0){
-      //   long int asukoht = stepper->getCurrentPosition();
-      //   int hetkKiirus = stepper->getCurrentSpeedInMilliHz();
-      //   int peatumisVahemaa = hetkKiirus*hetkKiirus / 2*stepper->getCurrentAcceleration() + 200;
-      //   // Täisring on 32*200 = 6400 sammu
-      //   int vaheNullini = asukoht % 6400;
-      //   if (peatumisVahemaa > vaheNullini){
-      //     stepper->moveTo(vaheNullini + 6400);
-      //   }
-      //   else{
-      //     stepper->moveTo(vaheNullini);
-      //   }
-        
-
-      
-
-        
-      //   //stepper->stopMove();
-        
-      //   }
-         
-      
-      // else if (positsioon == 1){
-      //   stepper->setSpeedInHz(kiirus);
-      //   stepper->runBackward();
-       
-      // }
 
        if (stepper2) 
    {
