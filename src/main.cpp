@@ -7,7 +7,7 @@
 // #include <AsyncTCP.h>
 // #include <ESPAsyncWebServer.h>
 // #include <WebSerial.h>
-#define leadscrew 4 // 1 - 2mm pitch
+#define leadscrew 1 // 1 - 2mm pitch
 #define hall_sensor 2 // 1- 49E, 2-digital
 #define dirPin 17
 #define stepPin 16
@@ -39,7 +39,7 @@ int homingSpeed2 = 2400;
 int homingSpeed3 = 2400;
 int homingSpeed4 = 2400 / leadscrew;
 int startPos1 = 0;
-int startPos2 = tuningRange + 50; //tuningRange + 50;
+int startPos2 = 0; //tuningRange + 50;
 int startPos3 = 0;
 int startPos4 = 0;
 int lastDiskState = 0;
@@ -76,7 +76,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   dutyCycle1 =getData[0]; // Light output
   kiirus = map(getData[1], 0, 255, 0, 55000); // speed of the disk
   positsioon =  map(getData[2], 0, 255, 0, 3); // direction of the disk
-  positsioon2 =  map(getData[3], 0, 255, 1, -tuningRange); // tuning
+  positsioon2 =  map(getData[3], 0, 255, 0, -tuningRange); // tuning
   kiirus2 =  map(getData[4], 0, 255, 0, 20000);  // tuning speed
   positsioon3 =  map(getData[5], 0, 255, 0, 3); // pick direction 
   kiirus3 = map(getData[6], 0, 255, 0,80000); // pick speed 62000
@@ -145,7 +145,7 @@ void homing2(){
         if (((millis() - lastDebounceTime) > debounceDelay) && reading == true){
           homed2 = true; 
           stepper2->setSpeedInHz(homingSpeed2 * 2);
-          stepper2->move(homingSpeed2 * -2);
+          stepper2->move(homingSpeed2 * -1);
           delay(1000);
           stepper2->setCurrentPosition(0);
           stepper2->setSpeedInHz(0);
@@ -247,7 +247,7 @@ void homing3(){
     bool reading = digitalRead(hallSensor);
 
     ledcWrite(ledChannel1, 60);
-    stepper3->setSpeedInHz(homingSpeed3 / 4);
+    stepper3->setSpeedInHz(homingSpeed3 / 2);
     stepper3->runForward();
 
     if (reading != lastReading){
@@ -258,7 +258,7 @@ void homing3(){
       homed3 = true; 
       ledcWrite(ledChannel1, 0);
       stepper3->setSpeedInHz(homingSpeed3 * 2);
-      stepper3->move(homingSpeed3 * -2);
+      stepper3->move(homingSpeed3 / -2);
       delay(1000);
     }
 
@@ -281,7 +281,7 @@ void homing3(){
       homed32 = true; 
       ledcWrite(ledChannel1, 0);
       stepper3->setSpeedInHz(homingSpeed3 * 2);
-      stepper3->move(homingSpeed3 * -2);
+      stepper3->move(homingSpeed3 / -2);
       delay(1000);
       stepper4->setCurrentPosition(startPos3);
       Serial.println("homed");
@@ -322,6 +322,9 @@ void homing4(){
   homed4 = false;
   bool lastReading = 0;
   Serial.println("Homing 4");
+  stepper4->move(-6 * homingSpeed4);
+  ledcWrite(ledChannel1, 30);
+  delay(1000);
   while(homed4 == false){
     bool reading = digitalRead(limit4);
 
