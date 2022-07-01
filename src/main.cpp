@@ -9,6 +9,7 @@
 // #include <WebSerial.h>
 #define leadscrew 1 // 1 - 2mm pitch
 #define hall_sensor 2 // 1- 49E, 2-digital
+const int machine = 1;
 #define dirPin 17
 #define stepPin 16
 
@@ -80,8 +81,30 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   kiirus2 =  map(getData[4], 0, 255, 0, 20000);  // tuning speed
   positsioon3 =  map(getData[5], 0, 255, 0, 3); // pick direction 
   kiirus3 = map(getData[6], 0, 255, 0,80000); // pick speed 62000
-  positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
-
+  switch(machine){
+    case 1:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 2:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 3:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 4:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 5:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 6:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+    case 7:
+      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      break;
+  }
+  
 }
 
 // void recvMsg(uint8_t *data, size_t len){
@@ -449,7 +472,7 @@ void setup() {
 void loop() {
 
   ledcWrite(ledChannel1, dutyCycle1);
-  
+  /// DISK MOVEMENT
     if (positsioon == 3 && lastDiskState != positsioon){
       lastDiskState = positsioon;
       stepper->setSpeedInHz(kiirus);
@@ -491,7 +514,7 @@ void loop() {
     else {
       
     }
-
+    /// TUNING MOVEMENT
     if (stepper2) 
       {
       stepper2->setAutoEnable(false);
@@ -511,6 +534,7 @@ void loop() {
     //   stepper3->runBackward(); 
     //   }
 //
+    // SNARE MOVEMENT
     if (positsioon3 == 3 && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3;
       stepper3->setSpeedInHz(kiirus3);
@@ -537,21 +561,22 @@ void loop() {
       else{
         int minAbsSeiskumispunkt = (-1*(asukoht % 6400)) - (peatumisVahemaa);
        
-        stepper3->move((6400 - (minAbsSeiskumispunkt % 6400) - abs(peatumisVahemaa) + (hetkKiirus / 50)) * -1);
+        stepper3->move((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
         //stepper3->move((6400 - (minAbsSeiskumispunkt % 6400) - abs(peatumisVahemaa) + (hetkKiirus / 50)) * -1);
         }
     }  
 
     else if (positsioon3 == 1 && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3;
-      stepper3->setSpeedInHz(kiirus);
+      stepper3->setSpeedInHz(kiirus3);
       stepper3->runBackward();     
       }
-      else if (positsioon3 == 1 && lastDiskState2 == positsioon){
-      stepper3->setSpeedInHz(kiirus);
+      else if (positsioon3 == 1 && lastDiskState2 == positsioon3){
+      stepper3->setSpeedInHz(kiirus3);
       stepper3->runBackward();     
       }
 
+    //STRING DISTANCE
     if (stepper4)
       {
         stepper4->setAutoEnable(false);
