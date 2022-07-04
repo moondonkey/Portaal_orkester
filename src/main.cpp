@@ -7,9 +7,9 @@
 // #include <AsyncTCP.h>
 // #include <ESPAsyncWebServer.h>
 // #include <WebSerial.h>
-#define leadscrew 1 // 1 - 2mm pitch
+#define leadscrew 4 // 1 - 2mm pitch ;;;; 4 - 4mm pitch
 #define hall_sensor 2 // 1- 49E, 2-digital
-const int machine = 1;
+const int machine = 6;
 #define dirPin 17
 #define stepPin 16
 
@@ -78,33 +78,36 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   kiirus = map(getData[1], 0, 255, 0, 55000); // speed of the disk
   positsioon =  map(getData[2], 0, 255, 0, 3); // direction of the disk
   positsioon2 =  map(getData[3], 0, 255, 0, -tuningRange); // tuning
-  kiirus2 =  map(getData[4], 0, 255, 0, 20000);  // tuning speed
-  positsioon3 =  map(getData[5], 0, 255, 0, 3); // pick direction 
-  kiirus3 = map(getData[6], 0, 255, 0,80000); // pick speed 62000
+  //kiirus2 =  map(getData[4], 0, 255, 0, 20000);  // tuning speed
+  positsioon3 =  map(getData[4], 0, 255, 0, 3); // pick direction 
+  kiirus3 = map(getData[5], 0, 255, 0,80000); // pick speed 62000
   switch(machine){
     case 1:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 0, 28000/leadscrew); // string distance
       break;
     case 2:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 19460, 35000/leadscrew); // string distance
       break;
     case 3:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 0, 23625/leadscrew); // string distance
       break;
     case 4:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 19527/leadscrew, 40000/leadscrew); // string distance
       break;
     case 5:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 10900/leadscrew,  35000/leadscrew ); // string distance
       break;
     case 6:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 0, 25375/leadscrew); // string distance
       break;
     case 7:
-      positsioon4 = map(getData[7], 0, 255, 0, 56000/leadscrew); // string distance
+      positsioon4 = map(getData[6], 0, 255, 0, 40000/leadscrew); // string distance
       break;
-  }
   
+  }
+  if(getData[7] == 1){
+    ESP.restart();
+  } 
 }
 
 // void recvMsg(uint8_t *data, size_t len){
@@ -115,7 +118,17 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 //   }
 //   WebSerial.println(d);
 // }
-
+void homingKetas(){
+  stepper->setSpeedInHz(homingSpeed1 * 2);
+  stepper->runForward();
+  for(int i = 1; i<9; i++){
+    ledcWrite(ledChannel1, (i * 32 )- 1);
+    delay(500);
+  }
+  stepper->stopMove();
+  stepper->setSpeedInHz(0);
+  ledcWrite(ledChannel1, 0);
+}
 void homing1(){
   Serial.println("homing1");
   Serial.println(analogRead(hallSensor));
@@ -150,6 +163,9 @@ void homing2(){
   int buttonState = 0; 
   bool lastReading = 0;
   Serial.println("Homing 2");
+  stepper2->move(-6 * homingSpeed2);
+  ledcWrite(ledChannel1, 30);
+  delay(1000);
   while(homed2 == false){
     bool reading = digitalRead(limit2);
 
@@ -158,12 +174,7 @@ void homing2(){
     stepper2->runForward();
 
     if (reading != lastReading){
-      lastDebounceTime = millis();
-      Serial.print("lastDebounceTime ");
-      Serial.println(lastDebounceTime);
-      Serial.print("millis() - lastDebounceTime ");
-      Serial.println(millis() - lastDebounceTime);
-      //Serial.println("reading != lastReading");
+
     }
         if (((millis() - lastDebounceTime) > debounceDelay) && reading == true){
           homed2 = true; 
@@ -172,94 +183,17 @@ void homing2(){
           delay(1000);
           stepper2->setCurrentPosition(0);
           stepper2->setSpeedInHz(0);
-          Serial.println("homed");
+          Serial.println("homed 2");
         }
 
     lastReading = reading;
 
   }
 
-
-  // Serial.println("homing2");
-  //   //while(analogRead(limit2) <= 2500 ){
-  //   while(!digitalRead(limit2)){
-  //     ledcWrite(ledChannel1, 60);
-  //     stepper2->setSpeedInHz(homingSpeed2);
-  //     stepper2->runForward();
-  //   }
-  // ledcWrite(ledChannel1, 0);  
-  // stepper2->setSpeedInHz(homingSpeed2 * 2);
-  // stepper2->move(homingSpeed2 * -2);
-  // delay(1000);
-  // //while(analogRead(limit2) <= 2500) {
-  //   while(!digitalRead(limit2)){
-  //   ledcWrite(ledChannel1, 60);
-  //   stepper2->setSpeedInHz(homingSpeed2 /2);
-  //   stepper2->runForward();
-  // }
-  //   ledcWrite(ledChannel1, 0);
-  //   stepper2->stopMove();
-  //   delay(200);
-  //   stepper2->setCurrentPosition(0);
-  //   Serial.print("homed2 ");
-  //   Serial.println(stepper2->getCurrentPosition());
-  //   kiirus2 = 0;
-  //   stepper2->setSpeedInHz(0);
 }
 
 void homing3(){
-  // Serial.println("homing3");
-  // delay(500);
-  // if(hall_sensor == 1){
-  //   while(analogRead(hallSensor2) >= 850 && analogRead(hallSensor2) <= 2550){
-  //     Serial.println("while1");
-  //     Serial.println(analogRead(hallSensor2));
-  //     stepper3->setSpeedInHz(homingSpeed3);
-  //     stepper3->runForward();
-  //   }
-  //   stepper3->setSpeedInHz(homingSpeed3 * 4);
-  //   stepper3->move(homingSpeed3 * -1);
-  //   Serial.println(analogRead(hallSensor2));
-  //   delay(1000);
-  //   while(analogRead(hallSensor2) >= 850 && analogRead(hallSensor2) <= 2550) {
-  //   Serial.println("while2");
-  //   Serial.println(analogRead(hallSensor2));
-  //   stepper3->setSpeedInHz(homingSpeed3/2);
-  //   stepper3->runForward();
-  //   }
-  //   stepper3->stopMove();
-  //   delay(200);
-  //   stepper3->setCurrentPosition(startPos3);
-  //   Serial.print("homed3 ");
-  //   Serial.println(stepper3->getCurrentPosition());
-  //   kiirus3 = 0;
-  //   stepper3->setSpeedInHz(0);
-  // }
-  // else{
-  //   while(digitalRead(hallSensor)){
-  //     Serial.println("while1");
-  //     Serial.println(digitalRead(hallSensor));
-  //     stepper3->setSpeedInHz(homingSpeed3);
-  //     stepper3->runForward();
-  //   }
-  //   stepper3->setSpeedInHz(homingSpeed3 * 4);
-  //   stepper3->move(homingSpeed3 * -1);
-  //   Serial.println(analogRead(hallSensor));
-  //   delay(1000);
-  //   while(digitalRead(hallSensor)) {
-  //   Serial.println("while2");
-  //   Serial.println(digitalRead(hallSensor));
-  //   stepper3->setSpeedInHz(homingSpeed3/2);
-  //   stepper3->runForward();
-  //   }
-  //   stepper3->stopMove();
-  //   delay(200);
-  //   stepper3->setCurrentPosition(startPos3);
-  //   Serial.print("homed3 ");
-  //   Serial.println(stepper3->getCurrentPosition());
-  //   kiirus3 = 0;
-  //   stepper3->setSpeedInHz(0);
-  // }
+
   unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
   unsigned long debounceDelay = 100;
   bool homed32 = false;
@@ -305,8 +239,10 @@ void homing3(){
       ledcWrite(ledChannel1, 0);
       stepper3->setSpeedInHz(homingSpeed3 * 2);
       stepper3->move(homingSpeed3 / -2);
-      delay(1000);
-      stepper4->setCurrentPosition(startPos3);
+      delay(1500);
+      stepper3->setCurrentPosition(startPos3);
+      Serial.print("current position: ");
+      Serial.println(stepper3->getCurrentPosition());
       Serial.println("homed");
     }
 
@@ -325,17 +261,7 @@ void testhoming(){
     Serial.println(analogRead(hallSensor2));
 
    }
-  
-   Serial.println("testing2");
-    while(!digitalRead(limit2)){
-      Serial.println("STEP HIGH");
-      digitalWrite(stepPin4, HIGH);
-      delay(1000);
-      Serial.println("STEP LOW");
-      digitalWrite(stepPin4, HIGH);
-      delay(1000);
-     
-   }
+
    Serial.println("end of test");
 }
 
@@ -345,6 +271,7 @@ void homing4(){
   homed4 = false;
   bool lastReading = 0;
   Serial.println("Homing 4");
+  stepper4->setSpeedInHz(18000 / leadscrew);
   stepper4->move(-6 * homingSpeed4);
   ledcWrite(ledChannel1, 30);
   delay(1000);
@@ -357,11 +284,7 @@ void homing4(){
 
     if (reading != lastReading){
       lastDebounceTime = millis();
-      Serial.print("lastDebounceTime ");
-      Serial.println(lastDebounceTime);
-      Serial.print("millis() - lastDebounceTime ");
-      Serial.println(millis() - lastDebounceTime);
-      //Serial.println("reading != lastReading");
+
     }
         if (((millis() - lastDebounceTime) > debounceDelay) && reading == true){
           homed4 = true; 
@@ -370,7 +293,7 @@ void homing4(){
           delay(500);
           stepper4->stopMove();
           stepper4->setCurrentPosition(startPos4);
-          Serial.println("homed");
+          Serial.println("homed 4");
         }
 
     lastReading = reading;
@@ -427,7 +350,7 @@ void setup() {
    {
       stepper->setDirectionPin(dirPin);
       stepper->setAutoEnable(false);
-      stepper->setSpeedInHz(kiirus);
+      //stepper->setSpeedInHz(kiirus);
       stepper->setAcceleration(diskKiirendus); 
       
    }
@@ -435,7 +358,7 @@ void setup() {
    {
       stepper2->setDirectionPin(dirPin2);
       stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2); 
+      //stepper2->setSpeedInHz(kiirus2); 
       stepper2->setAcceleration(24000); 
       
    } 
@@ -443,7 +366,7 @@ void setup() {
    {
       stepper3->setDirectionPin(dirPin3);
       stepper3->setAutoEnable(false);
-      stepper3->setSpeedInHz(kiirus3); 
+      //stepper3->setSpeedInHz(kiirus3); 
       stepper3->setAcceleration(diskKiirendus2); 
       
    }
@@ -451,15 +374,14 @@ void setup() {
    {
       stepper4->setDirectionPin(dirPin4);
       stepper4->setAutoEnable(false);
-      stepper4->setSpeedInHz(18000 / leadscrew); 
+      //stepper4->setSpeedInHz(18000 / leadscrew); 
       stepper4->setAcceleration(24000 / leadscrew); 
       
    }
   
   //testhoming();
-  Serial.println(homed4);
   //homing1();
-  
+  homingKetas();
   homing2();
   homing4();
   homing3();
@@ -476,12 +398,22 @@ void loop() {
     if (positsioon == 3 && lastDiskState != positsioon){
       lastDiskState = positsioon;
       stepper->setSpeedInHz(kiirus);
-      stepper->runForward();      
+      if (kiirus > 0){
+        stepper->runForward();
       }
+      else {
+        stepper->stopMove();
+      }
+    }
     else if (positsioon == 3 && lastDiskState == positsioon){
       stepper->setSpeedInHz(kiirus);
-      stepper->runForward(); 
+      if (kiirus > 0){
+        stepper->runForward();
       }
+      else {
+        stepper->stopMove();
+      } 
+    }
 
     else if ((positsioon == 0 || positsioon == 2) && lastDiskState != positsioon){
       lastDiskState = positsioon; 
@@ -492,12 +424,12 @@ void loop() {
 
       if(stepper->getCurrentSpeedInMilliHz() > 0){  
         int minAbsSeiskumispunkt = (asukoht % 6400) + abs(peatumisVahemaa);
-        Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
+        //Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
         stepper->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50));
         }
       else{
         int minAbsSeiskumispunkt = (-asukoht % 6400) - (peatumisVahemaa);
-        Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
+        //Serial.println((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
         stepper->move((6400 - (minAbsSeiskumispunkt % 6400) - abs(peatumisVahemaa) + (hetkKiirus / 50)) * -1);
         }
     }
@@ -505,11 +437,21 @@ void loop() {
     else if (positsioon == 1 && lastDiskState != positsioon){
       lastDiskState = positsioon;
       stepper->setSpeedInHz(kiirus);
-      stepper->runBackward();     
+      if (kiirus > 0){
+        stepper->runBackward();
+      }
+      else {
+        stepper->stopMove();
+      }    
       }
       else if (positsioon == 1 && lastDiskState == positsioon){
       stepper->setSpeedInHz(kiirus);
-      stepper->runBackward();     
+      if (kiirus > 0){
+        stepper->runBackward();
+      }
+      else {
+        stepper->stopMove();
+      }       
       }
     else {
       
@@ -518,7 +460,7 @@ void loop() {
     if (stepper2) 
       {
       stepper2->setAutoEnable(false);
-      stepper2->setSpeedInHz(kiirus2);
+      stepper2->setSpeedInHz(20000);
       stepper2->moveTo(positsioon2);
       }
 
@@ -538,43 +480,90 @@ void loop() {
     if (positsioon3 == 3 && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3;
       stepper3->setSpeedInHz(kiirus3);
-      stepper3->runForward();      
+      if (kiirus3 > 0){
+        stepper3->runForward();
       }
+      else {
+        stepper3->stopMove();
+      }   
+    }
     else if (positsioon3 == 3 && lastDiskState2 == positsioon3){
       stepper3->setSpeedInHz(kiirus3);
-      stepper3->runForward(); 
+      if (kiirus3 > 0){
+        stepper3->runForward();
       }
+      else {
+        stepper3->stopMove();
+      }  ; 
+    }
 
     else if ((positsioon3 == 0 || positsioon3 == 2) && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3; 
-      long int peatumisVahemaa;
+      Serial.println("peatumine algab");
+      stepper3->stopMove();
+      long int peatumisPaik = stepper3->getPositionAfterCommandsCompleted();
+      Serial.print("position after stopping: ");
+      Serial.println(peatumisPaik);
+      Serial.print("asukoht: ");
       long int asukoht = stepper3->getCurrentPosition();
-      int hetkKiirus = stepper3->getCurrentSpeedInMilliHz() / 1000;
-      peatumisVahemaa = (sq(hetkKiirus) / (2 * diskKiirendus2))  + hetkKiirus;
+      Serial.println(asukoht);
+      long int stopDistance = peatumisPaik - asukoht;
+      Serial.print("Stopping distance: ");
+      Serial.println(stopDistance);
+      Serial.print("current speed: ");
+      Serial.println(stepper3->getCurrentSpeedInMilliHz()/1000);
 
       if(stepper3->getCurrentSpeedInMilliHz() > 0){  
-        int minAbsSeiskumispunkt = (asukoht % 6400) + abs(peatumisVahemaa);
-        
-        stepper3->move(6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50));
-        //stepper3->move(3200 + (minAbsSeiskumispunkt % 3200));
-        }
-      else{
-        int minAbsSeiskumispunkt = (-1*(asukoht % 6400)) - (peatumisVahemaa);
-       
-        stepper3->move((6400 - (minAbsSeiskumispunkt % 6400) + abs(peatumisVahemaa) - (hetkKiirus / 50)) * -1);
-        //stepper3->move((6400 - (minAbsSeiskumispunkt % 6400) - abs(peatumisVahemaa) + (hetkKiirus / 50)) * -1);
-        }
+        Serial.print("peatumisPaik % 6400: ");
+        Serial.println(peatumisPaik % 6400);
+        Serial.print("moveTo ++ : ");
+        Serial.println(peatumisPaik + (6400 - (peatumisPaik % 6400)));
+        int konstant = (stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+        int konstant2 = (konstant / 6400) * 3.4;
+        stepper3->moveTo(peatumisPaik + (6400 - (peatumisPaik % 6400)) + konstant2 * 6400);
+        Serial.print("konstant: ");
+        Serial.println(konstant);
+        Serial.print("konstant2: ");
+        Serial.println(konstant2);
+      }
+      if(stepper3->getCurrentSpeedInMilliHz() < 0){  
+        Serial.print("peatumisPaik % 6400: ");
+        Serial.println(peatumisPaik % 6400);
+        Serial.print("moveTo ++ : ");
+        Serial.println(peatumisPaik + (6400 - (peatumisPaik % 6400)));
+        int konstant = abs(stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+        int konstant2 = (konstant / 6400) * 3.4;
+        stepper3->moveTo(peatumisPaik - (6400 + (peatumisPaik % 6400)) - konstant2 * 6400);
+        Serial.print("konstant: ");
+        Serial.println(konstant);
+        Serial.print("konstant2: ");
+        Serial.println(konstant2);
+      }
+
+      
+      Serial.println();
     }  
 
     else if (positsioon3 == 1 && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3;
       stepper3->setSpeedInHz(kiirus3);
-      stepper3->runBackward();     
+ 
+      if (kiirus3 > 0){
+      stepper3->runBackward();  
       }
-      else if (positsioon3 == 1 && lastDiskState2 == positsioon3){
+      else {
+        stepper3->stopMove();
+      }    
+    }
+    else if (positsioon3 == 1 && lastDiskState2 == positsioon3){
       stepper3->setSpeedInHz(kiirus3);
-      stepper3->runBackward();     
+      if (kiirus3 > 0){
+      stepper3->runBackward();  
       }
+      else {
+        stepper3->stopMove();
+      }      
+    }
 
     //STRING DISTANCE
     if (stepper4)
