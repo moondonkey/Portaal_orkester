@@ -3,9 +3,10 @@
 #include <WiFi.h>
 #include "FastAccelStepper.h"
 
-#define leadscrew 4 // 1 - 2mm pitch ;;;; 4 - 4mm pitch
 #define hall_sensor 2 // 1- 49E, 2-digital
-const int machine = 5;
+const int machine = 2;
+#define leadscrew 1 // 1 - 2mm pitch
+
 #define dirPin 17
 #define stepPin 16
 
@@ -24,6 +25,7 @@ const int ledPin1 = 12;
 
 bool homed4 = false;
 bool homed3 = false;
+bool lastPickstate = 0;
 
 int tuningRange = 60000; //53000
 int homingSpeed1 = 640;
@@ -60,7 +62,7 @@ const int freq = 5000;
 const int ledChannel1 = 0;
 const int resolution = 8;
 
-int getData[8];
+int getData[7];
 
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&getData, incomingData, sizeof(getData));
@@ -164,8 +166,8 @@ void homing1(){
 
 void homing2(){ 
   unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-  unsigned long debounceDelay = 5
-  0;
+  unsigned long debounceDelay = 5;
+  
   bool homed2 = false;
   bool lastReading = 0;
   Serial.println("Homing 2");
@@ -258,14 +260,14 @@ void homing3(){
 }
 void testhoming(){
   Serial.println("testing");
-  //stepper4->setSpeedInHz(homingSpeed4);
-  //   stepper4->runForward();
+  stepper3->setSpeedInHz(homingSpeed3/4);
+     stepper3->runForward();
   while(dirPin2 == 19){
     delay(250);
     Serial.print("limit 2: ");
     Serial.print(digitalRead(limit2));
     Serial.print("   hallSensor: ");
-    Serial.println(analogRead(hallSensor));
+    Serial.println(digitalRead(hallSensor));
 
    }
 
@@ -448,7 +450,9 @@ void loop() {
       }
 
 
-    // SNARE MOVEMENT
+
+    // PICK MOVEMENT
+
     if (positsioon3 == 3 && lastDiskState2 != positsioon3){
       lastDiskState2 = positsioon3;
       stepper3->setSpeedInHz(kiirus3);
@@ -457,6 +461,18 @@ void loop() {
       }
       else {
         stepper3->stopMove();
+        long int peatumisPaik = stepper3->getPositionAfterCommandsCompleted();
+
+        if(stepper3->getCurrentSpeedInMilliHz() > 0){     
+          int konstant = (stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik + (6400 - (peatumisPaik % 6400)) + konstant2 * 6400);    
+        }
+        if(stepper3->getCurrentSpeedInMilliHz() < 0){     
+          int konstant = abs(stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik - (6400 + (peatumisPaik % 6400)) - konstant2 * 6400);    
+        }  
       }   
     }
     else if (positsioon3 == 3 && lastDiskState2 == positsioon3){
@@ -466,7 +482,20 @@ void loop() {
       }
       else {
         stepper3->stopMove();
-      }  ; 
+        long int peatumisPaik = stepper3->getPositionAfterCommandsCompleted();
+
+        if(stepper3->getCurrentSpeedInMilliHz() > 0){     
+          int konstant = (stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik + (6400 - (peatumisPaik % 6400)) + konstant2 * 6400);    
+        }
+        if(stepper3->getCurrentSpeedInMilliHz() < 0){     
+          int konstant = abs(stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik - (6400 + (peatumisPaik % 6400)) - konstant2 * 6400);    
+        }  
+        
+      }  
     }
 
     else if ((positsioon3 == 0 || positsioon3 == 2) && lastDiskState2 != positsioon3){
@@ -495,6 +524,18 @@ void loop() {
       }
       else {
         stepper3->stopMove();
+        long int peatumisPaik = stepper3->getPositionAfterCommandsCompleted();
+
+        if(stepper3->getCurrentSpeedInMilliHz() > 0){     
+          int konstant = (stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik + (6400 - (peatumisPaik % 6400)) + konstant2 * 6400);    
+        }
+        if(stepper3->getCurrentSpeedInMilliHz() < 0){     
+          int konstant = abs(stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik - (6400 + (peatumisPaik % 6400)) - konstant2 * 6400);    
+        }  
       }    
     }
     else if (positsioon3 == 1 && lastDiskState2 == positsioon3){
@@ -504,6 +545,18 @@ void loop() {
       }
       else {
         stepper3->stopMove();
+        long int peatumisPaik = stepper3->getPositionAfterCommandsCompleted();
+
+        if(stepper3->getCurrentSpeedInMilliHz() > 0){     
+          int konstant = (stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik + (6400 - (peatumisPaik % 6400)) + konstant2 * 6400);    
+        }
+        if(stepper3->getCurrentSpeedInMilliHz() < 0){     
+          int konstant = abs(stepper3->getCurrentSpeedInMilliHz()/1000)/2;
+          int konstant2 = (konstant / 6400) * 3.4;
+          stepper3->moveTo(peatumisPaik - (6400 + (peatumisPaik % 6400)) - konstant2 * 6400);    
+        }  
       }      
     }
 
