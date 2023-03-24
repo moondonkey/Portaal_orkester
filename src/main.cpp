@@ -15,7 +15,7 @@
 Preferences preferences;
 
 // Replace with your network credentials
-const char* ssid = "valgus";
+const char* ssid = "ketas";
 
 /* Put IP Address details */
 IPAddress local_ip(192,168,1,1);
@@ -28,8 +28,8 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 
-#define dirPin 17
-#define stepPin 16
+#define dirPin 2
+#define stepPin 4
 #define nupp 35
 #define limit 34
 #define tuli 25 
@@ -130,7 +130,7 @@ void initWiFi() {
   WiFi.softAP(ssid);
   WiFi.softAPConfig(local_ip, gateway, subnet);
   
-  if(!MDNS.begin("valgus")) {
+  if(!MDNS.begin("ketas")) {
    return;
 }
   Serial.print("Connecting to WiFi ..");
@@ -219,30 +219,19 @@ void initWebSocket() {
 
 
 void liikumine(){
-      ledcWrite(ledChannel2, 0);
-      
+      //ledcWrite(ledChannel2, 0);
+      Serial.println("liikumine");
       stepper->setAutoEnable(false);
       stepper->setSpeedInHz(kiirus);
       stepper->moveTo(ulatus);
-      while(stepper->targetPos() != stepper->getCurrentPosition()){
-        ledcWrite(ledChannel1, dutyCycle1);
-        stepper->setSpeedInHz(kiirus);
-      }
-      stepper->moveTo(0);
-      while(stepper->targetPos() != stepper->getCurrentPosition()){
-        ledcWrite(ledChannel1, dutyCycle1);
-        stepper->setSpeedInHz(kiirus);
-      }
-      
-      ledcWrite(ledChannel1,0);
-      liikumineState = false;
+      stepper->runForward();
 }
 void setup() {
   Serial.begin(115200);
-  pinMode(ledPin1, OUTPUT);
-  pinMode(tuli, OUTPUT);
-  pinMode(limit, INPUT);
-  pinMode(nupp, INPUT);
+  // pinMode(ledPin1, OUTPUT);
+  // pinMode(tuli, OUTPUT);
+  // pinMode(limit, INPUT);
+  // pinMode(nupp, INPUT);
   
   preferences.begin("my-app", false);
   kiirus = preferences.getInt("kiirus", 1);
@@ -259,63 +248,40 @@ void setup() {
    initWiFi();
    AsyncElegantOTA.begin(&server);  
 
-  // configure LED PWM functionalitites
-  ledcSetup(ledChannel1, freq, resolution);
-  ledcSetup(ledChannel2, freq, resolution);
-
-  // attach the channel to the GPIO to be controlled
-  ledcAttachPin(ledPin1, ledChannel1);
-  ledcAttachPin(tuli,ledChannel2);
-
-  ledcWrite(ledChannel2, 0);
-
   initWebSocket();
   
   //Web Server Root URL
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", "text/html");
   });
-  
+  Serial.println("debug1");
   server.serveStatic("/", SPIFFS, "/");
-
+Serial.println("debug2");
   //Start server
   server.begin();
-
+Serial.println("debug3");
   engine.init();
+  Serial.println("debug4");
    stepper = engine.stepperConnectToPin(stepPin);
-
+Serial.println("debug5");
   if (stepper) 
    {
       stepper->setDirectionPin(dirPin);
-      stepper->setAutoEnable(false);
+      stepper->setAutoEnable(true);
+      
       stepper->setSpeedInHz(kiirus);
       stepper->setAcceleration(8000); 
       
    }
-  
-  homing();
 
   }
 
 
 void loop() {
-    ledcWrite(ledChannel2, 255);
-    if (valgusState == true){
-      ledcWrite(ledChannel1, dutyCycle1);
-    }
-    else if(valgusState == false){
-      ledcWrite(ledChannel1, 0);
-    }
-
-
-
-  if (digitalRead(nupp) == HIGH && liikumineState == false)
-  {
-    liikumineState = true;
-  }
-    
-
-  if (liikumineState == true){
-    liikumine();
-  }
+Serial.print("kiirus: ");
+Serial.println(kiirus);
+      stepper->setAutoEnable(true);
+      stepper->setSpeedInHz(kiirus);
+      stepper->runForward();
+  
 }
